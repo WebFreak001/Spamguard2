@@ -1,0 +1,15 @@
+{
+	"name": "spamguard2",
+	"description": "A twitch chat bot written in D",
+	"copyright": "Copyright © 2016, webfreak",
+	"authors": [
+		"webfreak"
+	],
+	"versions": [
+		"VibeDefaultMain"
+	],
+	"dependencies": {
+		"vibeirc": "~>2.1.4",
+		"mongoschemad": "~>2.0.0"
+	}
+}
