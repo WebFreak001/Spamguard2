@@ -1,0 +1,25 @@
+html
+	head
+		title #{name} - Watchtime
+	body
+		- import vibe.data.bson;
+		table
+			thead
+				tr
+					th User
+					th Points
+					th Watchtime
+			- foreach(entry; users)
+				- if (entry.info.type == Bson.Type.object)
+					- auto propPtr = "properties" in entry.info.get!(Bson[string]);
+					- if (propPtr && propPtr.type == Bson.Type.object)
+						- auto properties = *propPtr;
+						- auto pointsPtr = "points" in properties.get!(Bson[string]);
+						- auto timePtr = "watchTime" in properties.get!(Bson[string]);
+						- if (pointsPtr && timePtr && pointsPtr.type == Bson.Type.long_ && timePtr.type == Bson.Type.long_)
+							- auto points = pointsPtr.get!long;
+							- auto time = timePtr.get!long;
+							tr
+								td= entry.identifier.username
+								td= points
+								td= formatWatchTime(time)

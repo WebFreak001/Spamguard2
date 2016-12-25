@@ -10,6 +10,6 @@
 	],
 	"dependencies": {
 		"vibeirc": "~>2.1.4",
-		"mongoschemad": "~>2.0.0"
+		"mongoschemad": "~>2.2.1"
 	}
 }

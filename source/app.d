@@ -5,6 +5,8 @@ import bot.plugins.manager;
 import bot.plugins.builtin.test;
 import bot.plugins.builtin.twitch_highlight;
 import bot.plugins.builtin.custom_commands;
+import bot.plugins.builtin.time_tracker;
+import bot.util.userstore;
 
 import std.file;
 
@@ -37,13 +39,16 @@ shared static this()
 		plugins.bind(twitch);
 
 		auto db = connectMongoDB("localhost").getDatabase("spamguard");
+		db.setupUserStore();
 
 		//plugins.add(new TestPlugin());
+		plugins.add(new TimeTrackerPlugin(website, info["username"].get!string));
 		plugins.add(new CustomCommandsPlugin(db));
 		plugins.add(highlightsPlugin = new HighlightPlugin(website));
 
 		auto router = new URLRouter;
 		router.get("/:user/highlights", &userHighlights);
+		router.get("/:user/points", &userPoints);
 		router.get("*", serveStaticFiles("./public/"));
 
 		listenHTTP(settings, router);
@@ -55,4 +60,11 @@ void userHighlights(HTTPServerRequest req, HTTPServerResponse res)
 	string name = req.params["user"];
 	auto highlights = highlightsPlugin.getChannelOrThrow("#" ~ name);
 	res.render!("highlights.dt", name, highlights, make2);
+}
+
+void userPoints(HTTPServerRequest req, HTTPServerResponse res)
+{
+	string name = req.params["user"];
+	auto users = ChannelUserStorage.findRange(["identifier.channel": name]);
+	res.render!("points.dt", name, users, formatWatchTime);
 }

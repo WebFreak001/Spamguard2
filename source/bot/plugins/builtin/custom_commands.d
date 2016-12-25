@@ -6,6 +6,7 @@ import bot.plugins.midware.router;
 
 import std.algorithm;
 import std.ascii;
+import std.array;
 
 import vibe.db.mongo.database;
 import vibe.db.mongo.collection;
@@ -28,7 +29,7 @@ class CustomCommandsPlugin : IPlugin
 	this(MongoDatabase db)
 	{
 		db["commands"].register!CommandInfo;
-		commands = CommandInfo.find();
+		commands = CommandInfo.findAll().array;
 
 		auto router = new CommandRouter();
 		router.on("!command add :trigger :msg", &addCommand);
@@ -96,7 +97,7 @@ class CustomCommandsPlugin : IPlugin
 		{
 			return Abort.yes;
 		}
-		commands = CommandInfo.find();
+		commands = CommandInfo.findAll().array;
 		return Abort.yes;
 	}
 
