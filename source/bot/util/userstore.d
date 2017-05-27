@@ -57,6 +57,8 @@ struct ChannelUserStorage
 
 	static Bson get(string username, string channel, string namespace)
 	{
+		if (channel.length > 0 && channel[0] == '#')
+			channel = channel[1 .. $];
 		auto store = tryFindOne(["identifier" : Target(username, channel)]);
 		if (store.isNull)
 			return Bson.emptyObject;
@@ -72,6 +74,8 @@ struct ChannelUserStorage
 
 	static void set(string username, string channel, string namespace, Bson info)
 	{
+		if (channel.length > 0 && channel[0] == '#')
+			channel = channel[1 .. $];
 		auto store = tryFindOne(["identifier" : Target(username, channel)]);
 		if (store.isNull)
 			store = ChannelUserStorage(Target(username, channel), Bson.emptyObject);
