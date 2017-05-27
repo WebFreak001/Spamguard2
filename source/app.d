@@ -6,6 +6,7 @@ import bot.plugins.builtin.test;
 import bot.plugins.builtin.twitch_highlight;
 import bot.plugins.builtin.custom_commands;
 import bot.plugins.builtin.time_tracker;
+import bot.plugins.builtin.gambler;
 import bot.util.userstore;
 
 import std.file;
@@ -44,6 +45,7 @@ shared static this()
 		//plugins.add(new TestPlugin());
 		plugins.add(new TimeTrackerPlugin(website, info["username"].get!string, true, 2));
 		plugins.add(new CustomCommandsPlugin(db));
+		plugins.add(new GamblerPlugin);
 		plugins.add(highlightsPlugin = new HighlightPlugin(website));
 
 		auto router = new URLRouter;
