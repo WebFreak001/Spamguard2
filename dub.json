@@ -6,7 +6,8 @@
 		"webfreak"
 	],
 	"versions": [
-		"VibeDefaultMain"
+		"VibeDefaultMain",
+		"VibeNoSSL"
 	],
 	"dependencies": {
 		"vibeirc": "~>2.1.4",
