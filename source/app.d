@@ -42,7 +42,7 @@ shared static this()
 		db.setupUserStore();
 
 		//plugins.add(new TestPlugin());
-		plugins.add(new TimeTrackerPlugin(website, info["username"].get!string));
+		plugins.add(new TimeTrackerPlugin(website, info["username"].get!string, true, 2));
 		plugins.add(new CustomCommandsPlugin(db));
 		plugins.add(highlightsPlugin = new HighlightPlugin(website));
 

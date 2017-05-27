@@ -26,11 +26,13 @@ string formatWatchTime(long time)
 
 class TimeTrackerPlugin : IPlugin
 {
-	this(string websiteBase, string ignoreUser)
+	this(string websiteBase, string ignoreUser, bool rewardActive, int minutesPerPoint = 10)
 	{
 		this.websiteBase = websiteBase;
+		this.rewardActive = rewardActive;
 		auto router = new CommandRouter();
 		router.on("!points", &getPoints);
+		router.on("!leaderboard", &getAllPoints);
 		use(router);
 
 		runTask({
@@ -40,7 +42,7 @@ class TimeTrackerPlugin : IPlugin
 				sleep(1.minutes);
 				minute++;
 				bool givePoints = false;
-				if (minute >= 10)
+				if (minute >= minutesPerPoint)
 				{
 					minute = 0;
 					givePoints = true;
@@ -59,9 +61,14 @@ class TimeTrackerPlugin : IPlugin
 
 	Abort getPoints(IBot bot, string channel, scope Command command)
 	{
-		/*bot.send(command.raw.sender, "Your points in channel #" ~ channel ~ " are " ~ command.raw.sender.pointsFor(channel)
+		bot.send(channel, "@" ~ command.raw.sender ~ " points: " ~ command.raw.sender.pointsFor(channel)
 				.to!string ~ " as a result from watching for " ~ command.raw.sender.watchTimeFor(channel)
-				.formatWatchTime);*/
+				.formatWatchTime);
+		return Abort.yes;
+	}
+
+	Abort getAllPoints(IBot bot, string channel, scope Command command)
+	{
 		bot.send(channel,
 				"View the current watchtime & points on " ~ websiteBase ~ channel[1 .. $] ~ "/points");
 		return Abort.yes;
@@ -69,9 +76,12 @@ class TimeTrackerPlugin : IPlugin
 
 	override Abort onMessage(IBot bot, CommonMessage msg)
 	{
-		string channel = msg.target[1 .. $];
-		logInfo("Target: %s, sender: %s", channel, msg.sender);
-		multipliers[[channel, msg.sender]] = 2;
+		if (rewardActive)
+		{
+			string channel = msg.target[1 .. $];
+			logInfo("Target: %s, sender: %s", channel, msg.sender);
+			multipliers[[channel, msg.sender]] = 2;
+		}
 		return Abort.no;
 	}
 
@@ -88,6 +98,7 @@ class TimeTrackerPlugin : IPlugin
 	}
 
 private:
+	bool rewardActive;
 	string websiteBase;
 	int[string[2]] multipliers;
 }
