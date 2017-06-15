@@ -71,10 +71,19 @@ class IRCBot : IBot
 	void send(CommonMessage message)
 	{
 		if (Clock.currTime - lastMessage < 1.seconds)
-			return;
+		{
+			if (sentFast)
+				return;
+			else
+				sentFast = true;
+		}
+		else
+			sentFast = false;
 		lastMessage = Clock.currTime;
 		client.send(message.target, message.message.replace("\n", " "));
 	}
+
+	bool sentFast;
 
 	void addOnMessage(MessageHandler handler)
 	{
