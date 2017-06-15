@@ -46,6 +46,8 @@ class TimeTrackerPlugin : IPlugin
 		router.on("!import :url", &importPoints);
 		use(router);
 
+		liveChanged ~= &onLiveChange;
+
 		runTask({
 			int minute = 0;
 			while (true)
@@ -60,6 +62,8 @@ class TimeTrackerPlugin : IPlugin
 				}
 				foreach (ref multiplier; multipliers)
 				{
+					if (!included.canFind(multiplier.channel))
+						included ~= multiplier.channel.toLower[1 .. $];
 					if (!multiplier.channel.isLive || multiplier.username.toLower == ignoreUser.toLower)
 						continue;
 					if (multiplier.multiplier > 0 && givePoints)
@@ -71,6 +75,14 @@ class TimeTrackerPlugin : IPlugin
 				}
 			}
 		});
+	}
+
+	string[] included;
+	void onLiveChange(string channel, bool live)
+	{
+		if (bot && included.canFind(channel))
+			bot.send('#' ~ channel, live ? "Channel is now live, tracking points"
+					: "Channel no longer live, stopped tracking points.");
 	}
 
 	Abort getPoints(IBot bot, string channel, scope Command command)
@@ -165,11 +177,12 @@ class TimeTrackerPlugin : IPlugin
 		return Abort.no;
 	}
 
-	override void onUserJoin(IBot, string channel, string username)
+	override void onUserJoin(IBot bot, string channel, string username)
 	{
-		import bot.twitch.userids;
+		import bot.twitch.userids : useridFor;
 
 		put(channel, username, useridFor(username), 1);
+		this.bot = bot;
 	}
 
 	override void onUserLeave(IBot, string channel, string username)
@@ -208,6 +221,7 @@ private:
 	bool rewardActive;
 	string websiteBase;
 	ChannelMultiplier[] multipliers;
+	IBot bot;
 }
 
 struct ChannelMultiplier
