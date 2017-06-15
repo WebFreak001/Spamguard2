@@ -43,7 +43,7 @@ class GamblerPlugin : IPlugin
 						"@" ~ command.raw.sender ~ " you don't have the required amount of points.");
 			else
 			{
-				int roll = uniform!"[]"(0, 100);
+				int roll = uniform!"[]"(1, 100);
 				if (roll < 60)
 				{
 					auto newAmount = command.raw.senderID.pointsFor(channel, -amount);
