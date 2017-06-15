@@ -4,13 +4,14 @@ import bot.irc.bot;
 import bot.plugins.manager;
 import bot.plugins.midware.router;
 import bot.util.userstore;
+import bot.twitch.stream;
 
 import vibe.core.core;
-import vibe.core.log;
 
 import core.time;
 import std.string;
 import std.conv;
+import std.math;
 
 string digit2(string n)
 {
@@ -22,6 +23,14 @@ string formatWatchTime(long time)
 	auto hours = time / 60;
 	auto minutes = time % 60;
 	return hours.to!string ~ ":" ~ minutes.to!string.digit2;
+}
+
+string compactWatchTime(long time)
+{
+	if (time < 100)
+		return time.to!string ~ "m";
+	else
+		return (round(time / 6.0) / 10.0).to!string ~ "h";
 }
 
 class TimeTrackerPlugin : IPlugin
@@ -47,13 +56,18 @@ class TimeTrackerPlugin : IPlugin
 					minute = 0;
 					givePoints = true;
 				}
-				foreach (user, multiplier; multipliers)
+				foreach (ref multiplier; multipliers)
 				{
-					if (user[1].toLower == ignoreUser.toLower)
+					if (!multiplier.channel.isLive)
+					{
 						continue;
-					if (multiplier > 0 && givePoints)
-						user[1].pointsFor(user[0], +multiplier);
-					user[1].watchTimeFor(user[0], +1);
+					}
+					if (multiplier.multiplier > 0 && givePoints)
+					{
+						multiplier.userID.pointsFor(multiplier.channel, +multiplier.multiplier);
+						multiplier.multiplier = 1;
+					}
+					multiplier.userID.watchTimeFor(multiplier.channel, +1);
 				}
 			}
 		});
@@ -61,16 +75,15 @@ class TimeTrackerPlugin : IPlugin
 
 	Abort getPoints(IBot bot, string channel, scope Command command)
 	{
-		bot.send(channel, "@" ~ command.raw.sender ~ " points: " ~ command.raw.sender.pointsFor(channel)
-				.to!string ~ " as a result from watching for " ~ command.raw.sender.watchTimeFor(channel)
-				.formatWatchTime);
+		bot.send(channel, "@" ~ command.raw.sender ~ " points: " ~ command.raw.senderID.pointsFor(channel)
+				.to!string ~ " (watched for " ~ command.raw.senderID.watchTimeFor(channel)
+				.compactWatchTime ~ ")");
 		return Abort.yes;
 	}
 
 	Abort getAllPoints(IBot bot, string channel, scope Command command)
 	{
-		bot.send(channel,
-				"View the current watchtime & points on " ~ websiteBase ~ channel[1 .. $] ~ "/points");
+		bot.send(channel, "View the current leaderboard on " ~ websiteBase ~ channel[1 .. $] ~ "/points");
 		return Abort.yes;
 	}
 
@@ -79,26 +92,60 @@ class TimeTrackerPlugin : IPlugin
 		if (rewardActive)
 		{
 			string channel = msg.target[1 .. $];
-			logInfo("Target: %s, sender: %s", channel, msg.sender);
-			multipliers[[channel, msg.sender]] = 2;
+			put(channel, msg.sender, msg.senderID, 2);
 		}
 		return Abort.no;
 	}
 
 	override void onUserJoin(IBot, string channel, string username)
 	{
-		logInfo("Channel: %s, join: %s", channel, username);
-		multipliers[[channel, username]] = 1;
+		import bot.twitch.userids;
+
+		put(channel, username, useridFor(username), 1);
 	}
 
 	override void onUserLeave(IBot, string channel, string username)
 	{
-		logInfo("Channel: %s, part: %s", channel, username);
-		multipliers.remove([channel, username]);
+		foreach_reverse (i, multiplier; multipliers)
+		{
+			if (multiplier.username == username)
+			{
+				if (!channel.length || multiplier.channel == channel)
+				{
+					multipliers[i] = multipliers[$ - 1];
+					multipliers.length--;
+				}
+			}
+		}
+	}
+
+	void put(string channel, string username, long userID, int newMultiplier)
+	{
+		bool found;
+		foreach (ref multiplier; multipliers)
+		{
+			if (multiplier.channel == channel && multiplier.userID == userID)
+			{
+				found = true;
+				multiplier.username = username;
+				multiplier.multiplier = newMultiplier;
+				break;
+			}
+		}
+		if (!found)
+			multipliers ~= ChannelMultiplier(channel, userID, username, newMultiplier);
 	}
 
 private:
 	bool rewardActive;
 	string websiteBase;
-	int[string[2]] multipliers;
+	ChannelMultiplier[] multipliers;
+}
+
+struct ChannelMultiplier
+{
+	string channel;
+	long userID;
+	string username;
+	int multiplier;
 }

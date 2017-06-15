@@ -55,8 +55,7 @@ class IRCBot : IBot
 
 	void kick(string channel, string user, Duration duration)
 	{
-		client.send(channel,
-				".timeout " ~ user ~ " " ~ (cast(int) duration.total!"seconds").to!string);
+		client.send(channel, ".timeout " ~ user ~ " " ~ (cast(int) duration.total!"seconds").to!string);
 	}
 
 	void ban(string channel, string user)
@@ -115,6 +114,7 @@ private:
 	void onUnknownCommand(string prefix, string command, string[] arguments)
 	{
 		auto userTypeIdx = prefix.indexOf("user-type=");
+		auto userIdIdx = prefix.indexOf("user-id=");
 		if (userTypeIdx != -1)
 		{
 			if (arguments.length > 2)
@@ -130,6 +130,16 @@ private:
 					CommonMessage msg;
 					msg.target = channel;
 					msg.sender = username;
+					if (userIdIdx != -1)
+					{
+						import bot.twitch.userids;
+
+						auto semicolon = prefix.indexOf(";", userIdIdx);
+						if (semicolon == -1)
+							semicolon = prefix.length;
+						msg.senderID = prefix[userIdIdx + "user-id=".length .. semicolon].to!long;
+						updateUser(msg.sender, msg.senderID);
+					}
 					msg.message = message;
 					Rank rank;
 					if (username == channel[1 .. $])

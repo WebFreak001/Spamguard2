@@ -3,23 +3,28 @@ html
 		title #{name} - Watchtime
 	body
 		- import vibe.data.bson;
+		- import bot.twitch.userids;
 		table
 			thead
 				tr
 					th User
 					th Points
 					th Watchtime
-			- foreach(entry; users)
-				- if (entry.info.type == Bson.Type.object)
-					- auto propPtr = "properties" in entry.info.get!(Bson[string]);
-					- if (propPtr && propPtr.type == Bson.Type.object)
-						- auto properties = *propPtr;
-						- auto pointsPtr = "points" in properties.get!(Bson[string]);
-						- auto timePtr = "watchTime" in properties.get!(Bson[string]);
-						- if (pointsPtr && timePtr && pointsPtr.type == Bson.Type.long_ && timePtr.type == Bson.Type.long_)
-							- auto points = pointsPtr.get!long;
-							- auto time = timePtr.get!long;
-							tr
-								td= entry.identifier.username
-								td= points
-								td= formatWatchTime(time)
+			tbody
+				- foreach(entry; users)
+					- if (entry.info.type == Bson.Type.object && entry.identifier.userID)
+						- auto propPtr = "properties" in entry.info.get!(Bson[string]);
+						- if (propPtr && propPtr.type == Bson.Type.object)
+							- auto properties = *propPtr;
+							- auto pointsPtr = "points" in properties.get!(Bson[string]);
+							- auto timePtr = "watchTime" in properties.get!(Bson[string]);
+							- if (timePtr && timePtr.type == Bson.Type.long_)
+								- auto time = timePtr.get!long;
+								tr
+									td= usernameFor(entry.identifier.userID)
+									- if (pointsPtr && pointsPtr.type == Bson.Type.long_)
+										- auto points = pointsPtr.get!long;
+										td= points
+									- else
+										td 0
+									td= formatWatchTime(time)

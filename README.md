@@ -10,6 +10,7 @@ Create a file named `info.json` with following content and replace placeholders 
 {
 	"username": "<Your Twitch Username>",
 	"password": "<Your Twitch Chat OAuth token>",
+	"clientid": "<Your Twitch Client ID>",
 	"channels": [
 		"#<Channel name>"
 	],

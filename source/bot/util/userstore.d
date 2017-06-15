@@ -8,14 +8,14 @@ import mongoschema;
 
 struct GlobalUserStorage
 {
-	@mongoUnique string username;
+	@mongoUnique long userID;
 	Bson info;
 
 	mixin MongoSchema;
 
-	static Bson get(string username, string namespace)
+	static Bson get(long userID, string namespace)
 	{
-		auto store = tryFindOne(["username" : username]);
+		auto store = tryFindOne(["userID" : userID]);
 		if (store.isNull)
 			return Bson.emptyObject;
 		if (!namespace)
@@ -28,11 +28,11 @@ struct GlobalUserStorage
 		return *ptr;
 	}
 
-	static void set(string username, string namespace, Bson info)
+	static void set(long userID, string namespace, Bson info)
 	{
-		auto store = tryFindOne(["username" : username]);
+		auto store = tryFindOne(["userID" : userID]);
 		if (store.isNull)
-			store = GlobalUserStorage(username, Bson.emptyObject);
+			store = GlobalUserStorage(userID, Bson.emptyObject);
 		if (store.info.type != Bson.Type.object)
 			store.info = Bson.emptyObject;
 		if (namespace)
@@ -45,7 +45,8 @@ struct GlobalUserStorage
 
 private struct Target
 {
-	string username, channel;
+	long userID;
+	string channel;
 }
 
 struct ChannelUserStorage
@@ -55,11 +56,11 @@ struct ChannelUserStorage
 
 	mixin MongoSchema;
 
-	static Bson get(string username, string channel, string namespace)
+	static Bson get(long userID, string channel, string namespace)
 	{
 		if (channel.length > 0 && channel[0] == '#')
 			channel = channel[1 .. $];
-		auto store = tryFindOne(["identifier" : Target(username, channel)]);
+		auto store = tryFindOne(["identifier" : Target(userID, channel)]);
 		if (store.isNull)
 			return Bson.emptyObject;
 		if (!namespace)
@@ -72,13 +73,13 @@ struct ChannelUserStorage
 		return *ptr;
 	}
 
-	static void set(string username, string channel, string namespace, Bson info)
+	static void set(long userID, string channel, string namespace, Bson info)
 	{
 		if (channel.length > 0 && channel[0] == '#')
 			channel = channel[1 .. $];
-		auto store = tryFindOne(["identifier" : Target(username, channel)]);
+		auto store = tryFindOne(["identifier" : Target(userID, channel)]);
 		if (store.isNull)
-			store = ChannelUserStorage(Target(username, channel), Bson.emptyObject);
+			store = ChannelUserStorage(Target(userID, channel), Bson.emptyObject);
 		if (store.info.type != Bson.Type.object)
 			store.info = Bson.emptyObject;
 		if (namespace)
@@ -95,7 +96,7 @@ void setupUserStore(MongoDatabase db)
 	db["channel_user_store"].register!ChannelUserStorage;
 }
 
-long longPropertyFor(string property)(string viewer, string streamer, long diff = 0)
+long longPropertyFor(string property)(long viewer, string streamer, long diff = 0)
 {
 	auto obj = ChannelUserStorage.get(viewer, streamer, "properties");
 	auto value = obj.tryIndex(property);

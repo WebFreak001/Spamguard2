@@ -15,4 +15,5 @@ struct CommonMessage
 	string sender;
 	string message;
 	Rank senderRank;
+	long senderID;
 }

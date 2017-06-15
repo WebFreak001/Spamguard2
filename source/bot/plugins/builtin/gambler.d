@@ -37,7 +37,7 @@ class GamblerPlugin : IPlugin
 			bot.send(channel, "@" ~ command.raw.sender ~ " use `!gamble x`, where x is a positive non-zero integer to gamble x points. (You need to own at least x points)");
 		else
 		{
-			long current = command.raw.sender.pointsFor(channel);
+			long current = command.raw.senderID.pointsFor(channel);
 			if (amount > current)
 				bot.send(channel,
 						"@" ~ command.raw.sender ~ " you don't have the required amount of points.");
@@ -46,20 +46,20 @@ class GamblerPlugin : IPlugin
 				int roll = uniform!"[]"(0, 100);
 				if (roll < 60)
 				{
-					auto newAmount = command.raw.sender.pointsFor(channel, -amount);
+					auto newAmount = command.raw.senderID.pointsFor(channel, -amount);
 					bot.send(channel, "@" ~ command.raw.sender ~ " rolled " ~ roll.to!string
 							~ ", lost " ~ amount.to!string ~ " points. Has "
 							~ newAmount.to!string ~ " points now.");
 				}
 				else if (roll == 100)
 				{
-					auto newAmount = command.raw.sender.pointsFor(channel, +amount * 2);
+					auto newAmount = command.raw.senderID.pointsFor(channel, +amount * 2);
 					bot.send(channel, "@" ~ command.raw.sender ~ " rolled 100, won " ~ (amount * 2)
 							.to!string ~ " points. Has " ~ newAmount.to!string ~ " points now.");
 				}
 				else
 				{
-					auto newAmount = command.raw.sender.pointsFor(channel, +amount);
+					auto newAmount = command.raw.senderID.pointsFor(channel, +amount);
 					bot.send(channel, "@" ~ command.raw.sender ~ " rolled " ~ roll.to!string
 							~ ", won " ~ amount.to!string ~ " points. Has " ~ newAmount.to!string
 							~ " points now.");
