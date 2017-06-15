@@ -73,20 +73,47 @@ class PluginManager
 	void onJoin(IBot bot, string channel, string username)
 	{
 		foreach (plugin; plugins)
-			plugin.handleUserJoin(bot, channel, username);
+		{
+			try
+			{
+				plugin.handleUserJoin(bot, channel, username);
+			}
+			catch (Exception e)
+			{
+				logError("Error in plugin: %s", e);
+			}
+		}
 	}
 
 	void onLeave(IBot bot, string channel, string username)
 	{
 		foreach (plugin; plugins)
-			plugin.handleUserLeave(bot, channel, username);
+		{
+			try
+			{
+				plugin.handleUserLeave(bot, channel, username);
+			}
+			catch (Exception e)
+			{
+				logError("Error in plugin: %s", e);
+			}
+		}
 	}
 
 	void onMessage(IBot bot, CommonMessage msg)
 	{
 		foreach (plugin; plugins)
-			if (plugin.handleMessage(bot, msg))
-				return;
+		{
+			try
+			{
+				if (plugin.handleMessage(bot, msg))
+					return;
+			}
+			catch (Exception e)
+			{
+				logError("Error in plugin: %s", e);
+			}
+		}
 	}
 
 private:

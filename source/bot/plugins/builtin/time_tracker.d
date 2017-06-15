@@ -58,10 +58,8 @@ class TimeTrackerPlugin : IPlugin
 				}
 				foreach (ref multiplier; multipliers)
 				{
-					if (!multiplier.channel.isLive)
-					{
+					if (!multiplier.channel.isLive || multiplier.username.toLower == ignoreUser.toLower)
 						continue;
-					}
 					if (multiplier.multiplier > 0 && givePoints)
 					{
 						multiplier.userID.pointsFor(multiplier.channel, +multiplier.multiplier);

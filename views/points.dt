@@ -1,30 +1,22 @@
-html
-	head
-		title #{name} - Watchtime
-	body
-		- import vibe.data.bson;
-		- import bot.twitch.userids;
-		table
-			thead
+extends base.dt
+
+block title
+	title #{name} - Watchtime
+
+block content
+	h1 Leaderboards for #{name}
+	table.leaderboard
+		thead
+			tr
+				th
+				th User
+				th Points
+				th Watchtime
+		tbody
+			- uint place = 0;
+			- foreach (user; users)
 				tr
-					th User
-					th Points
-					th Watchtime
-			tbody
-				- foreach(entry; users)
-					- if (entry.info.type == Bson.Type.object && entry.identifier.userID)
-						- auto propPtr = "properties" in entry.info.get!(Bson[string]);
-						- if (propPtr && propPtr.type == Bson.Type.object)
-							- auto properties = *propPtr;
-							- auto pointsPtr = "points" in properties.get!(Bson[string]);
-							- auto timePtr = "watchTime" in properties.get!(Bson[string]);
-							- if (timePtr && timePtr.type == Bson.Type.long_)
-								- auto time = timePtr.get!long;
-								tr
-									td= usernameFor(entry.identifier.userID)
-									- if (pointsPtr && pointsPtr.type == Bson.Type.long_)
-										- auto points = pointsPtr.get!long;
-										td= points
-									- else
-										td 0
-									td= formatWatchTime(time)
+					td.right #{++place}#{place == 1 ? "st" : place == 2 ? "nd" : place == 3 ? "rd" : "th"}
+					td= user.username
+					td= user.points
+					td= formatWatchTime(user.watchTime)

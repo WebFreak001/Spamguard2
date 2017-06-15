@@ -1,21 +1,23 @@
-html
-	head
-		title #{name} - Stream Highlights
-	body
-		- if(highlights.cleared)
-			h2 Highlights were cleared
-			p They can still be recovered using
-				b !highlight undo clear
-		- else
-			table
-				thead
-					tr
-						th Timestamp
-						th Description
-						th Submitted by
-				- foreach(highlight; highlights.highlights)
-					tr
-						- auto splits = highlight.duration.split!("hours", "minutes", "seconds");
-						td #{make2(splits.hours)}:#{make2(splits.minutes)}:#{make2(splits.seconds)}
-						td= highlight.description
-						td= highlight.submitter
+extends base.dt
+
+block title
+	title #{name} - Stream Highlights
+
+block content
+	- if (highlights.cleared)
+		h2 Highlights were cleared
+		p They can still be recovered using
+			b !highlight undo clear
+	- else
+		table
+			thead
+				tr
+					th Timestamp
+					th Description
+					th Submitted by
+			- foreach (highlight; highlights.highlights)
+				tr
+					- auto splits = highlight.duration.split!("hours", "minutes", "seconds");
+					td #{make2(splits.hours)}:#{make2(splits.minutes)}:#{make2(splits.seconds)}
+					td= highlight.description
+					td= highlight.submitter

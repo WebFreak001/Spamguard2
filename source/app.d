@@ -11,6 +11,7 @@ import bot.twitch.api;
 import bot.twitch.userids;
 import bot.util.userstore;
 
+import std.algorithm;
 import std.file;
 
 IRCBot twitch;
@@ -52,6 +53,7 @@ shared static this()
 		plugins.add(highlightsPlugin = new HighlightPlugin(website));
 
 		auto router = new URLRouter;
+		router.get("/", staticRedirect("https://github.com/WebFreak001/Spamguard2"));
 		router.get("/:user/highlights", &userHighlights);
 		router.get("/:user/points", &userPoints);
 		router.get("*", serveStaticFiles("./public/"));
@@ -70,6 +72,40 @@ void userHighlights(HTTPServerRequest req, HTTPServerResponse res)
 void userPoints(HTTPServerRequest req, HTTPServerResponse res)
 {
 	string name = req.params["user"];
-	auto users = ChannelUserStorage.findRange(["identifier.channel" : name]);
+	struct UserPointsWatchTime
+	{
+		string username;
+		long points;
+		long watchTime;
+	}
+
+	UserPointsWatchTime[] allUsers;
+	foreach (entry; ChannelUserStorage.findRange(["identifier.channel" : name]))
+	{
+		if (entry.info.type == Bson.Type.object && entry.identifier.userID)
+		{
+			auto propPtr = "properties" in entry.info.get!(Bson[string]);
+			if (propPtr && propPtr.type == Bson.Type.object)
+			{
+				auto properties = *propPtr;
+				auto pointsPtr = "points" in properties.get!(Bson[string]);
+				auto timePtr = "watchTime" in properties.get!(Bson[string]);
+				if (timePtr && timePtr.type == Bson.Type.long_)
+				{
+					auto time = timePtr.get!long;
+					long points = 0;
+					if (pointsPtr && pointsPtr.type == Bson.Type.long_)
+						points = pointsPtr.get!long;
+					allUsers ~= UserPointsWatchTime(usernameFor(entry.identifier.userID), points, time);
+				}
+			}
+		}
+	}
+	auto users = allUsers.sort!((a, b) {
+		if (a.watchTime == b.watchTime)
+			return a.points > b.points;
+		else
+			return a.watchTime > b.watchTime;
+	});
 	res.render!("points.dt", name, users, formatWatchTime);
 }
