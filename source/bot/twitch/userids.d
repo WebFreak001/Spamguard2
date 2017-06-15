@@ -1,8 +1,12 @@
 module bot.twitch.userids;
 
 import vibe.data.json;
+import vibe.data.bson;
+import vibe.db.mongo.mongo;
 
 import bot.twitch.api;
+
+import mongoschema;
 
 import std.conv;
 import std.datetime;
@@ -10,84 +14,61 @@ import std.string;
 
 struct UserIDCache
 {
-	long userID;
+	@mongoUnique long userID;
 	string username;
-	SysTime requestDate;
+	SchemaDate requestDate = SchemaDate.now;
+
+	mixin MongoSchema;
 
 	static UserIDCache fromUser(Json user)
 	{
 		// { _id: string, name: string }
 		auto id = user["_id"].get!string.to!long;
 		auto name = user["name"].get!string.toLower;
-		return UserIDCache(id, name, Clock.currTime(UTC()));
+		return UserIDCache(id, name, SchemaDate.now);
 	}
 }
 
 string usernameFor(long userID)
 {
-	foreach (i, ref c; cache)
-	{
-		if (c.userID == userID)
-		{
-			if (Clock.currTime(UTC()) - c.requestDate > 24.hours)
-			{
-				cache[i] = cache[$ - 1];
-				cache.length--;
-				break;
-			}
-			else
-				return c.username;
-		}
-	}
+	auto existing = UserIDCache.tryFindOne(["userID" : userID]);
+	if (!existing.isNull && Clock.currTime(UTC()) - existing.requestDate.toSysTime <= 7.days)
+		return existing.username;
 	auto user = TwitchAPI.request("users/" ~ userID.to!string);
 	auto c = UserIDCache.fromUser(user);
-	cache ~= c;
+	if (!existing.isNull)
+		c.bsonID = existing.bsonID;
+	c.requestDate = SchemaDate.now;
+	c.save();
 	return c.username;
 }
 
 long useridFor(string username)
 {
-	foreach (i, ref c; cache)
-	{
-		if (c.username == username.toLower)
-		{
-			if (Clock.currTime(UTC()) - c.requestDate > 6.hours)
-			{
-				cache[i] = cache[$ - 1];
-				cache.length--;
-				break;
-			}
-			else
-				return c.userID;
-		}
-	}
+	auto existing = UserIDCache.tryFindOne(["username" : username]);
+	if (!existing.isNull && Clock.currTime(UTC()) - existing.requestDate.toSysTime <= 7.days)
+		return existing.userID;
 	auto user = TwitchAPI.request("users", "login=" ~ username.toLower);
 	auto r = UserIDCache.fromUser(user["users"][0]);
-	foreach_reverse (i, ref c; cache)
-	{
-		if (c.userID == r.userID)
-		{
-			c.username = r.username.toLower;
-			c.requestDate = r.requestDate;
-			return r.userID;
-		}
-	}
-	cache ~= r;
+	auto res = UserIDCache.tryFindOne(["userID" : r.userID]);
+	if (!res.isNull)
+		r.bsonID = res.bsonID;
+	r.requestDate = SchemaDate.now;
+	r.save();
 	return r.userID;
 }
 
-void updateUser(string username, long userid)
+void updateUser(string username, long userID)
 {
-	foreach_reverse (i, ref c; cache)
+	auto existing = UserIDCache.tryFindOne(["userID" : userID]);
+	if (existing.isNull)
 	{
-		if (c.userID == userid)
-		{
-			c.username = username.toLower;
-			c.requestDate = Clock.currTime(UTC());
-			return;
-		}
+		UserIDCache(userID, username, SchemaDate.now).save();
 	}
-	cache ~= UserIDCache(userid, username, Clock.currTime(UTC()));
+	else
+	{
+		existing.username = username.toLower;
+		existing.requestDate = SchemaDate.now;
+		existing.save();
+	}
 }
-
-private UserIDCache[] cache;

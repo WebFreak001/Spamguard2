@@ -92,8 +92,11 @@ struct ChannelUserStorage
 
 void setupUserStore(MongoDatabase db)
 {
+	import bot.twitch.userids;
+
 	db["global_user_store"].register!GlobalUserStorage;
 	db["channel_user_store"].register!ChannelUserStorage;
+	db["twitch_user_ids"].register!UserIDCache;
 }
 
 long longPropertyFor(string property)(long viewer, string streamer, long diff = 0)
@@ -111,5 +114,15 @@ long longPropertyFor(string property)(long viewer, string streamer, long diff = 
 	return value.get.get!long;
 }
 
+void overrideLongPropertyFor(string property)(long viewer, string streamer, long val)
+{
+	auto obj = ChannelUserStorage.get(viewer, streamer, "properties");
+	obj[property] = val;
+	ChannelUserStorage.set(viewer, streamer, "properties", obj);
+}
+
 alias pointsFor = longPropertyFor!"points";
 alias watchTimeFor = longPropertyFor!"watchTime";
+
+alias overridePointsFor = overrideLongPropertyFor!"points";
+alias overrideWatchTimeFor = overrideLongPropertyFor!"watchTime";

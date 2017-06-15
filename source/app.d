@@ -96,7 +96,17 @@ void userPoints(HTTPServerRequest req, HTTPServerResponse res)
 					long points = 0;
 					if (pointsPtr && pointsPtr.type == Bson.Type.long_)
 						points = pointsPtr.get!long;
-					allUsers ~= UserPointsWatchTime(usernameFor(entry.identifier.userID), points, time);
+					try
+					{
+						auto username = usernameFor(entry.identifier.userID);
+						if (username == "nightbot" || username == "revlobot"
+								|| username == "spamguard" || username == name.toLower)
+							continue;
+						allUsers ~= UserPointsWatchTime(username, points, time);
+					}
+					catch (Exception)
+					{
+					}
 				}
 			}
 		}

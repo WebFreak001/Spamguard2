@@ -6,12 +6,13 @@ import bot.plugins.midware.router;
 import bot.util.userstore;
 import bot.twitch.stream;
 
-import vibe.core.core;
+import vibe.vibe;
 
 import core.time;
 import std.string;
 import std.conv;
 import std.math;
+import std.typecons;
 
 string digit2(string n)
 {
@@ -22,7 +23,7 @@ string formatWatchTime(long time)
 {
 	auto hours = time / 60;
 	auto minutes = time % 60;
-	return hours.to!string ~ ":" ~ minutes.to!string.digit2;
+	return hours.to!string ~ "h" ~ minutes.to!string.digit2 ~ "m";
 }
 
 string compactWatchTime(long time)
@@ -42,6 +43,7 @@ class TimeTrackerPlugin : IPlugin
 		auto router = new CommandRouter();
 		router.on("!points", &getPoints);
 		router.on("!leaderboard", &getAllPoints);
+		router.on("!import :url", &importPoints);
 		use(router);
 
 		runTask({
@@ -84,6 +86,74 @@ class TimeTrackerPlugin : IPlugin
 		bot.send(channel, "View the current leaderboard on " ~ websiteBase ~ channel[1 .. $] ~ "/points");
 		return Abort.yes;
 	}
+
+	Abort importPoints(IBot bot, string channel, scope Command command)
+	{
+		if (command.raw.senderRank < Rank.mod)
+		{
+			return Abort.no;
+		}
+		string url = command.params["url"];
+		if (url == "confirm")
+		{
+			if (lastURL.length < 5 || lastURL[0 .. 4] != "http")
+			{
+				bot.send(channel, "Use `!import <url>` first");
+			}
+			else
+			{
+				try
+				{
+					string ret;
+					requestHTTP(lastURL, (scope req) {  }, (scope res) {
+						if (res.statusCode == 200)
+							ret = res.bodyReader.readAllUTF8(false, 1024 * 1024 * 40);
+					});
+					if (!ret.length)
+					{
+						bot.send(channel, "Could not download points.");
+						return Abort.yes;
+					}
+					import std.csv : csvReader;
+
+					try
+					{
+						auto reader = ret.csvReader!(Tuple!(string, long, long,
+								long))(["Username", "Twitch User ID", "Current Points", "All Time Points"]);
+						foreach (entry; reader)
+						{
+							import bot.twitch.userids;
+
+							entry[1].overridePointsFor(channel, entry[2]);
+							entry[1].overrideWatchTimeFor(channel, entry[3]);
+							updateUser(entry[0], entry[1]);
+						}
+						bot.send(channel, "Successfully imported data.");
+					}
+					catch (Exception e)
+					{
+						logError("Invalid data format: %s", e);
+						bot.send(channel, "Data not in valid format. Can only import revlobot points.");
+					}
+				}
+				catch (Exception e)
+				{
+					logError("Download error: %s", e);
+					bot.send(channel, "Could not download points. Error during download.");
+				}
+			}
+		}
+		else
+		{
+			lastURL = url;
+			if (url != "cancel")
+				bot.send(channel,
+						"This is about to replace the current leaderboards. Type `!import confirm` to confirm");
+		}
+		return Abort.yes;
+	}
+
+	string lastURL;
 
 	override Abort onMessage(IBot bot, CommonMessage msg)
 	{
