@@ -30,7 +30,7 @@ bool isLive(string channel)
 	{
 		if (cache.channel == id)
 		{
-			if (Clock.currTime(UTC()) - cache.check > 5.minutes)
+			if (Clock.currTime(UTC()) - cache.check > 30.minutes)
 			{
 				hadPrevious = true;
 				wasLive = cache.live;
@@ -45,28 +45,54 @@ bool isLive(string channel)
 	auto res = TwitchAPI.request("streams/" ~ id.to!string);
 	bool isLive = res["stream"].type != Json.Type.null_;
 	if (hadPrevious)
-	{
 		if (isLive != wasLive)
-		{
-			foreach (ev; liveChanged)
-			{
-				try
-				{
-					ev(channel, isLive);
-				}
-				catch (Exception e)
-				{
-					logError("Error in live change handler: %s", e);
-				}
-			}
-		}
-	}
+			triggerLiveEvent(channel, isLive);
 	live ~= LiveCache(isLive, id, Clock.currTime(UTC()));
 	return isLive;
 }
 
+void setLive(string channel, bool isLive)
+{
+	if (!channel.length)
+		return;
+	if (channel[0] == '#')
+		channel = channel[1 .. $];
+	if (!channel.length)
+		return;
+	long id = useridFor(channel);
+	foreach_reverse (i, ref cache; live)
+	{
+		if (cache.channel == id)
+		{
+			bool wasLive = cache.live;
+			cache.live = isLive;
+			cache.check = Clock.currTime(UTC());
+			if (wasLive != isLive)
+				triggerLiveEvent(channel, isLive);
+			return;
+		}
+	}
+	triggerLiveEvent(channel, isLive);
+	live ~= LiveCache(isLive, id, Clock.currTime(UTC()));
+}
+
+private void triggerLiveEvent(string channel, bool live)
+{
+	foreach (ev; liveChanged)
+	{
+		try
+		{
+			ev(channel, live);
+		}
+		catch (Exception e)
+		{
+			logError("Error in live change handler: %s", e);
+		}
+	}
+}
+
 alias LiveChangeEvent = void delegate(string, bool);
 
-LiveChangeEvent[] liveChanged;
+__gshared LiveChangeEvent[] liveChanged;
 
 private LiveCache[] live;

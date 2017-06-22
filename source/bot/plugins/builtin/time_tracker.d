@@ -80,7 +80,7 @@ class TimeTrackerPlugin : IPlugin
 	string[] included;
 	void onLiveChange(string channel, bool live)
 	{
-		if (bot && included.canFind(channel))
+		if (bot && included.canFind(channel.toLower))
 			bot.send('#' ~ channel, live ? "Channel is now live, tracking points"
 					: "Channel no longer live, stopped tracking points.");
 	}
