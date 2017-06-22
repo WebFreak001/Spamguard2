@@ -3,6 +3,7 @@ module bot.twitch.userids;
 import vibe.data.json;
 import vibe.data.bson;
 import vibe.db.mongo.mongo;
+import vibe.core.log;
 
 import bot.twitch.api;
 
@@ -34,13 +35,28 @@ string usernameFor(long userID)
 	auto existing = UserIDCache.tryFindOne(["userID" : userID]);
 	if (!existing.isNull && Clock.currTime(UTC()) - existing.requestDate.toSysTime <= 7.days)
 		return existing.username;
-	auto user = TwitchAPI.request("users/" ~ userID.to!string);
-	auto c = UserIDCache.fromUser(user);
-	if (!existing.isNull)
-		c.bsonID = existing.bsonID;
-	c.requestDate = SchemaDate.now;
-	c.save();
-	return c.username;
+	try
+	{
+		auto user = TwitchAPI.request("users/" ~ userID.to!string);
+		auto c = UserIDCache.fromUser(user);
+		if (!existing.isNull)
+			c.bsonID = existing.bsonID;
+		c.requestDate = SchemaDate.now;
+		c.save();
+		return c.username;
+	}
+	catch (Exception e)
+	{
+		logInfo("Failed to get username for %s: %s", userID, e);
+		if (existing.isNull)
+			return userID.to!string;
+		else
+		{
+			existing.requestDate = SchemaDate.now;
+			existing.save();
+			return existing.username;
+		}
+	}
 }
 
 long useridFor(string username)
@@ -48,14 +64,29 @@ long useridFor(string username)
 	auto existing = UserIDCache.tryFindOne(["username" : username]);
 	if (!existing.isNull && Clock.currTime(UTC()) - existing.requestDate.toSysTime <= 7.days)
 		return existing.userID;
-	auto user = TwitchAPI.request("users", "login=" ~ username.toLower);
-	auto r = UserIDCache.fromUser(user["users"][0]);
-	auto res = UserIDCache.tryFindOne(["userID" : r.userID]);
-	if (!res.isNull)
-		r.bsonID = res.bsonID;
-	r.requestDate = SchemaDate.now;
-	r.save();
-	return r.userID;
+	try
+	{
+		auto user = TwitchAPI.request("users", "login=" ~ username.toLower);
+		auto r = UserIDCache.fromUser(user["users"][0]);
+		auto res = UserIDCache.tryFindOne(["userID" : r.userID]);
+		if (!res.isNull)
+			r.bsonID = res.bsonID;
+		r.requestDate = SchemaDate.now;
+		r.save();
+		return r.userID;
+	}
+	catch (Exception e)
+	{
+		logInfo("Failed to get username for %s: %s", username, e);
+		if (existing.isNull)
+			throw e;
+		else
+		{
+			existing.requestDate = SchemaDate.now;
+			existing.save();
+			return existing.userID;
+		}
+	}
 }
 
 void updateUser(string username, long userID)
