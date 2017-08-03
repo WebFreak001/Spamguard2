@@ -1,9 +1,10 @@
 module bot.twitch.userids;
 
+import vibe.core.log;
 import vibe.data.json;
 import vibe.data.bson;
 import vibe.db.mongo.mongo;
-import vibe.core.log;
+import vibe.http.common;
 
 import bot.twitch.api;
 
@@ -45,8 +46,15 @@ string usernameFor(long userID)
 		c.save();
 		return c.username;
 	}
-	catch (Exception e)
+	catch (HTTPStatusException e)
 	{
+		if (e.status == 422)
+		{
+			existing.username = userID.to!string;
+			existing.requestDate = SchemaDate.fromSysTime(Clock.currTime + 14.days);
+			existing.save();
+			return existing.username;
+		}
 		logInfo("Failed to get username for %s: %s", userID, e);
 		if (existing.isNull)
 			return userID.to!string;
