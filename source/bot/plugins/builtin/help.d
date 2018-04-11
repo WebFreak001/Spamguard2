@@ -12,8 +12,9 @@ public:
 	this(PluginManager pm) {
 		_pm = pm;
 		auto router = new CommandRouter();
-		router.on("!help", &help, "Shows this help menu");
+		router.on("!help", &help, "Get link to wiki");
 		router.on("!h", &help);
+		router.on("!commands", &help);
 		use(router);
 	}
 
@@ -21,14 +22,16 @@ public:
 		import std.algorithm : map, joiner;
 		import std.outbuffer : OutBuffer;
 
-		// TODO: Website
+		if (false) { // TODO: Generate markdown for wiki
+			string output = "|";
+			foreach (PatternCallback p; _pm.plugins.map!(a => a.midwares).joiner.map!(a => cast(CommandRouter)a).map!(a => a.patterns).joiner)
+				if (p.description)
+					output ~= "\t" ~ p.rawFormat ~ ": " ~ p.description ~ "\t|";
 
-		string output = "|";
-		foreach (PatternCallback p; _pm.plugins.map!(a => a.midwares).joiner.map!(a => cast(CommandRouter)a).map!(a => a.patterns).joiner)
-			if (p.description)
-				output ~= "\t" ~ p.rawFormat ~ ": " ~ p.description ~ "\t|";
-
-		bot.send(channel, output);
+			bot.send(channel, output);
+		} else {
+			bot.send(channel, "https://github.com/Vild/Spamguard2/wiki/Commands");
+		}
 
 		return Abort.yes;
 	}

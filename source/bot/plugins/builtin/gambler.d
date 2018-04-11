@@ -21,10 +21,10 @@ class GamblerPlugin : IPlugin {
 		router.on("!g :amount", &gamble);
 		router.on("!flip :amount", &flip, "rand(0, 1) where 0 = lose, 1 = 2x");
 		router.on("!f :amount", &flip);
-		router.on("!roulette :amount", &roulette, "bet will be multipled by one of these: 0, 0.5, 1, 1.5, 2");
+		router.on("!roulette :amount", &roulette, "bet will be multiplied by one of these: 0, 0.5, 1, 1.5, 2");
 		router.on("!r :amount", &roulette);
 		router.on("!kill :user :amount", &kill,
-				"rand(0, max(0, 100 - $amount / 1000)) where 0 is kill successfull (target dies), else target gets $amount");
+				"rand(0, 100) <= $amount / 1000, where true is kill successful (target dies), else target gets $amount");
 		router.on("!k :user :amount", &kill);
 		use(router);
 	}
