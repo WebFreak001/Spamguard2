@@ -9,15 +9,13 @@ import bot.twitch.userids;
 import std.conv;
 import std.datetime;
 
-struct LiveCache
-{
+struct LiveCache {
 	bool live;
 	long channel;
 	SysTime check;
 }
 
-bool isLive(string channel)
-{
+bool isLive(string channel) {
 	if (!channel.length)
 		return false;
 	if (channel[0] == '#')
@@ -26,19 +24,15 @@ bool isLive(string channel)
 		return false;
 	long id = useridFor(channel);
 	bool hadPrevious, wasLive;
-	foreach_reverse (i, ref cache; live)
-	{
-		if (cache.channel == id)
-		{
-			if (Clock.currTime(UTC()) - cache.check > 30.minutes)
-			{
+	foreach_reverse (i, ref cache; live) {
+		if (cache.channel == id) {
+			if (Clock.currTime(UTC()) - cache.check > 30.minutes) {
 				hadPrevious = true;
 				wasLive = cache.live;
 				live[i] = live[$ - 1];
 				live.length--;
 				break;
-			}
-			else
+			} else
 				return cache.live;
 		}
 	}
@@ -51,8 +45,7 @@ bool isLive(string channel)
 	return isLive;
 }
 
-void setLive(string channel, bool isLive)
-{
+void setLive(string channel, bool isLive) {
 	if (!channel.length)
 		return;
 	if (channel[0] == '#')
@@ -60,10 +53,8 @@ void setLive(string channel, bool isLive)
 	if (!channel.length)
 		return;
 	long id = useridFor(channel);
-	foreach_reverse (i, ref cache; live)
-	{
-		if (cache.channel == id)
-		{
+	foreach_reverse (i, ref cache; live) {
+		if (cache.channel == id) {
 			bool wasLive = cache.live;
 			cache.live = isLive;
 			cache.check = Clock.currTime(UTC());
@@ -76,16 +67,11 @@ void setLive(string channel, bool isLive)
 	live ~= LiveCache(isLive, id, Clock.currTime(UTC()));
 }
 
-private void triggerLiveEvent(string channel, bool live)
-{
-	foreach (ev; liveChanged)
-	{
-		try
-		{
+private void triggerLiveEvent(string channel, bool live) {
+	foreach (ev; liveChanged) {
+		try {
 			ev(channel, live);
-		}
-		catch (Exception e)
-		{
+		} catch (Exception e) {
 			logError("Error in live change handler: %s", e);
 		}
 	}

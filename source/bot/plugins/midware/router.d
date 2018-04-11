@@ -9,98 +9,72 @@ import std.regex;
 import std.conv;
 import std.uni;
 
-struct Command
-{
+struct Command {
 	CommonMessage raw;
 	string[string] flags;
 	string[string] params;
 }
 
-private struct CommandPattern
-{
+private struct CommandPattern {
 	string base;
 	ushort[] paramLocs;
 }
 
-private string[] match(string msg, CommandPattern pattern)
-{
+private string[] match(string msg, CommandPattern pattern) {
 	ushort pos = 0;
 	ushort curParam = 0;
 	string[] params = [""];
 	bool inString = false;
 	bool escape = false;
 	bool lastWhite = true;
-	foreach (c; msg)
-	{
-		if (c.isWhite && lastWhite && !inString)
-		{
+	foreach (c; msg) {
+		if (c.isWhite && lastWhite && !inString) {
 			continue;
 		}
 		lastWhite = c.isWhite;
-		if (curParam < pattern.paramLocs.length && pos == pattern.paramLocs[curParam])
-		{
-			if (c == '"' && !inString)
-			{
+		if (curParam < pattern.paramLocs.length && pos == pattern.paramLocs[curParam]) {
+			if (c == '"' && !inString) {
 				if (pos < pattern.base.length && params[$ - 1].length)
 					return null;
 				if (params[$ - 1].length)
 					params[$ - 1].length--;
 				inString = true;
-			}
-			else
-			{
-				if (inString && !escape && c == '"')
-				{
+			} else {
+				if (inString && !escape && c == '"') {
 					inString = false;
-					if (pos < pattern.base.length)
-					{
+					if (pos < pattern.base.length) {
 						pos++;
 						curParam++;
 						params ~= "";
 					}
-				}
-				else if (escape && c == '"')
-				{
+				} else if (escape && c == '"') {
 					params[$ - 1] ~= '"';
 					escape = false;
-				}
-				else if (escape && c == 'n')
-				{
+				} else if (escape && c == 'n') {
 					params[$ - 1] ~= '\n';
 					escape = false;
-				}
-				else if (inString && c == '\\')
-				{
-					if (escape)
-					{
+				} else if (inString && c == '\\') {
+					if (escape) {
 						params[$ - 1] ~= '"';
 						escape = false;
-					}
-					else
+					} else
 						escape = true;
-				}
-				else if (pos < pattern.base.length && c == pattern.base[pos] && !inString)
-				{
+				} else if (pos < pattern.base.length && c == pattern.base[pos] && !inString) {
 					escape = false;
 					pos++;
 					curParam++;
 					params ~= "";
-				}
-				else
-				{
+				} else {
 					escape = false;
 					params[$ - 1] ~= c;
 				}
 			}
-		}
-		else
-		{
+		} else {
 			if (pos >= pattern.base.length)
 				return null;
 			if (c == pattern.base[pos])
 				pos++;
-			else
-			{
+			else {
 				if (!c.isWhite)
 					return null;
 			}
@@ -113,8 +87,7 @@ private string[] match(string msg, CommandPattern pattern)
 	return params[0 .. $ - 1];
 }
 
-version (unittest) void assertEq(T, U)(T t, U u)
-{
+version (unittest) void assertEq(T, U)(T t, U u) {
 	string a = t.to!string;
 	if (t is null)
 		a = "null";
@@ -124,8 +97,7 @@ version (unittest) void assertEq(T, U)(T t, U u)
 	assert(t == u, a ~ " and " ~ b ~ " are not equal!");
 }
 
-version (unittest) void assertEqRnd(T)(T[] t, T[] u)
-{
+version (unittest) void assertEqRnd(T)(T[] t, T[] u) {
 	string a = t.to!string;
 	if (t is null)
 		a = "null";
@@ -141,18 +113,14 @@ version (unittest) void assertEqRnd(T)(T[] t, T[] u)
 			assert(0, a ~ " and " ~ b ~ " are not randomly equal!");
 }
 
-unittest
-{
+unittest {
 	assertEq(match("!test", CommandPattern("!test", [])), []);
 	assert(!match("!testg", CommandPattern("!test", [])));
 	assertEq(match("!test gioejihot", CommandPattern("!test ", [6])), ["gioejihot"]);
 	assertEq(match("!test \"abc def\\\"  geh\"", CommandPattern("!test ", [6])), ["abc def\"  geh"]);
-	assertEq(match("!test abc def geh", CommandPattern("!test   ", [6, 7, 8])),
-			["abc", "def", "geh"]);
-	assertEq(match("!test abc def geh f", CommandPattern("!test   ", [6, 7,
-			8])), ["abc", "def", "geh f"]);
-	assertEq(match("!editcom  !foo append wegh",
-			CommandPattern("!editcom  append ", [9, 17])), ["!foo", "wegh"]);
+	assertEq(match("!test abc def geh", CommandPattern("!test   ", [6, 7, 8])), ["abc", "def", "geh"]);
+	assertEq(match("!test abc def geh f", CommandPattern("!test   ", [6, 7, 8])), ["abc", "def", "geh f"]);
+	assertEq(match("!editcom  !foo append wegh", CommandPattern("!editcom  append ", [9, 17])), ["!foo", "wegh"]);
 	assert(!match("!test", CommandPattern("!test foo", [])));
 	assert(!match("!test", CommandPattern("!test  me", [6])));
 	assertEq(match("!test foo me", CommandPattern("!test  me", [6])), ["foo"]);
@@ -163,62 +131,47 @@ alias CommandCallback = Abort delegate(IBot, string channel, scope Command comma
 private enum Whitespaces = ctRegex!`\s+`;
 private enum WordStart = ctRegex!`^\w+`;
 
-private struct PatternCallback
-{
-	this(string format, CommandCallback callback)
-	{
+struct PatternCallback {
+	this(string format, CommandCallback callback, string description) {
+		this.description = description;
+		this.rawFormat = format;
 		format = format.strip.replaceAll(Whitespaces, " ");
 		this.callback = callback;
 
 		int unnamedCounter = 0;
 		bool escape = false;
-		while (format.length)
-		{
+		while (format.length) {
 			immutable c = format[0];
-			if (c == '\\')
-			{
+			if (c == '\\') {
 				escape = true;
-			}
-			else
-			{
-				if (escape)
-				{
-					if (c == ':')
-					{
+			} else {
+				if (escape) {
+					if (c == ':') {
 						pattern.base ~= ':';
 						escape = false;
 						format = format[1 .. $];
 						continue;
-					}
-					else if (c == '*')
-					{
+					} else if (c == '*') {
 						pattern.base ~= '*';
 						escape = false;
 						format = format[1 .. $];
 						continue;
-					}
-					else
+					} else
 						pattern.base ~= '\\';
 					escape = false;
 				}
-				if (c == ':')
-				{
-					pattern.paramLocs ~= cast(ushort) pattern.base.length;
+				if (c == ':') {
+					pattern.paramLocs ~= cast(ushort)pattern.base.length;
 					format = format[1 .. $];
 					auto match = format.matchFirst(WordStart);
-					enforce(match && match.front,
-							"invalid parameter name start: '" ~ match.front ~ "'");
+					enforce(match && match.front, "invalid parameter name start: '" ~ match.front ~ "'");
 					paramMap ~= match.front;
 					format = format[match.front.length .. $];
 					continue;
-				}
-				else if (c == '*')
-				{
-					pattern.paramLocs ~= cast(ushort) pattern.base.length;
+				} else if (c == '*') {
+					pattern.paramLocs ~= cast(ushort)pattern.base.length;
 					paramMap ~= "_unnamed" ~ (++unnamedCounter).to!string;
-				}
-				else
-				{
+				} else {
 					pattern.base ~= c;
 				}
 			}
@@ -226,8 +179,7 @@ private struct PatternCallback
 		}
 
 		string[] added;
-		foreach (param; paramMap)
-		{
+		foreach (param; paramMap) {
 			enforce(!added.canFind(param), "Duplicate parameter name '" ~ param ~ "'");
 			added ~= param;
 		}
@@ -236,10 +188,11 @@ private struct PatternCallback
 	CommandPattern pattern;
 	CommandCallback callback;
 	string[] paramMap;
+	string rawFormat;
+	string description;
 }
 
-string[string] extractFlags(ref string message)
-{
+string[string] extractFlags(ref string message) {
 	string[string] flags;
 	string fixed = "";
 	bool inString = false;
@@ -248,12 +201,10 @@ string[string] extractFlags(ref string message)
 	bool doubleFlag = false;
 	bool doubleFlagValue = false;
 	string flagName = "";
-	foreach (c; message)
-	{
+	foreach (c; message) {
 		if (escape)
 			escape = false;
-		else
-		{
+		else {
 			if (c == '\\' && inString)
 				escape = true;
 			if (c == '"')
@@ -262,64 +213,45 @@ string[string] extractFlags(ref string message)
 
 		if (inString)
 			fixed ~= c;
-		else
-		{
-			if (c == '-')
-			{
+		else {
+			if (c == '-') {
 				if (!flag)
 					flag = true;
-				else if (!doubleFlag)
-				{
+				else if (!doubleFlag) {
 					flagName = "";
 					doubleFlagValue = false;
 					doubleFlag = true;
 				}
-			}
-			else if (c.isWhite && doubleFlag && doubleFlagValue)
-			{
+			} else if (c.isWhite && doubleFlag && doubleFlagValue) {
 				if (flagName !in flags)
 					flags[flagName] = "";
 				flags[flagName] ~= '\0';
 				flag = doubleFlag = doubleFlagValue = false;
 				fixed ~= c;
-			}
-			else if ((c.isWhite || c == '=') && doubleFlag && !doubleFlagValue)
-			{
+			} else if ((c.isWhite || c == '=') && doubleFlag && !doubleFlagValue) {
 				if (flagName.length)
 					doubleFlagValue = true;
-				else
-				{
+				else {
 					flag = doubleFlag = doubleFlagValue = false;
 					fixed ~= c;
 				}
-			}
-			else if (c.isWhite && flag)
-			{
+			} else if (c.isWhite && flag) {
 				flag = false;
 				fixed ~= c;
-			}
-			else
-			{
-				if (doubleFlag)
-				{
-					if (!doubleFlagValue)
-					{
+			} else {
+				if (doubleFlag) {
+					if (!doubleFlagValue) {
 						flagName ~= c;
-					}
-					else
-					{
+					} else {
 						if (flagName !in flags)
 							flags[flagName] = "";
 						flags[flagName] ~= c;
 					}
-				}
-				else if (flag)
-				{
+				} else if (flag) {
 					string boolFlagName = [c];
 					if (boolFlagName !in flags)
 						flags[boolFlagName] = "";
-				}
-				else
+				} else
 					fixed ~= c;
 			}
 		}
@@ -331,8 +263,7 @@ string[string] extractFlags(ref string message)
 	return flags;
 }
 
-unittest
-{
+unittest {
 	string[string] flags;
 	string cmd = "!foo -abc --foo=bar bob --hello world";
 	flags = cmd.extractFlags;
@@ -352,22 +283,18 @@ unittest
 	assertEq(flags["out"], "docx");
 }
 
-class CommandRouter : PluginMidware
-{
+class CommandRouter : PluginMidware {
 	// !to :user :duration
-	// !to -s Bob 
-	CommandRouter on(string format, CommandCallback callback)
-	{
-		patterns ~= PatternCallback(format, callback);
+	// !to -s Bob
+	CommandRouter on(string format, CommandCallback callback, string description = null) {
+		patterns ~= PatternCallback(format, callback, description);
 		return this;
 	}
 
-	Abort handleMessage(IPlugin, IBot bot, ref CommonMessage msg)
-	{
+	Abort handleMessage(IPlugin, IBot bot, ref CommonMessage msg) {
 		string text = msg.message.idup;
 		auto flags = text.extractFlags;
-		foreach (pattern; patterns)
-		{
+		foreach (pattern; patterns) {
 			auto match = text.match(pattern.pattern);
 			if (!match)
 				continue;
@@ -384,5 +311,5 @@ class CommandRouter : PluginMidware
 	}
 
 private:
-	PatternCallback[] patterns;
+	public PatternCallback[] patterns;
 }

@@ -3,18 +3,17 @@ module bot.util.userstore;
 import vibe.db.mongo.database;
 import vibe.db.mongo.collection;
 import vibe.data.bson;
+import bot.twitch.userids;
 
 import mongoschema;
 
-struct GlobalUserStorage
-{
+struct GlobalUserStorage {
 	@mongoUnique long userID;
 	Bson info;
 
 	mixin MongoSchema;
 
-	static Bson get(long userID, string namespace)
-	{
+	static Bson get(long userID, string namespace) {
 		auto store = tryFindOne(["userID" : userID]);
 		if (store.isNull)
 			return Bson.emptyObject;
@@ -28,8 +27,7 @@ struct GlobalUserStorage
 		return *ptr;
 	}
 
-	static void set(long userID, string namespace, Bson info)
-	{
+	static void set(long userID, string namespace, Bson info) {
 		auto store = tryFindOne(["userID" : userID]);
 		if (store.isNull)
 			store = GlobalUserStorage(userID, Bson.emptyObject);
@@ -43,21 +41,18 @@ struct GlobalUserStorage
 	}
 }
 
-private struct Target
-{
+struct Target {
 	long userID;
 	string channel;
 }
 
-struct ChannelUserStorage
-{
+struct ChannelUserStorage {
 	@mongoUnique Target identifier;
 	Bson info;
 
 	mixin MongoSchema;
 
-	static Bson get(long userID, string channel, string namespace)
-	{
+	static Bson get(long userID, string channel, string namespace) {
 		if (channel.length > 0 && channel[0] == '#')
 			channel = channel[1 .. $];
 		auto store = tryFindOne(["identifier" : Target(userID, channel)]);
@@ -73,8 +68,7 @@ struct ChannelUserStorage
 		return *ptr;
 	}
 
-	static void set(long userID, string channel, string namespace, Bson info)
-	{
+	static void set(long userID, string channel, string namespace, Bson info) {
 		if (channel.length > 0 && channel[0] == '#')
 			channel = channel[1 .. $];
 		auto store = tryFindOne(["identifier" : Target(userID, channel)]);
@@ -90,8 +84,7 @@ struct ChannelUserStorage
 	}
 }
 
-void setupUserStore(MongoDatabase db)
-{
+void setupUserStore(MongoDatabase db) {
 	import bot.twitch.userids;
 
 	db["global_user_store"].register!GlobalUserStorage;
@@ -99,14 +92,12 @@ void setupUserStore(MongoDatabase db)
 	db["twitch_user_ids"].register!UserIDCache;
 }
 
-long longPropertyFor(string property)(long viewer, string streamer, long diff = 0)
-{
+long longPropertyFor(string property)(long viewer, string streamer, long diff = 0) {
 	auto obj = ChannelUserStorage.get(viewer, streamer, "properties");
 	auto value = obj.tryIndex(property);
 	if (value.isNull)
 		value = Bson(0L);
-	if (diff != 0)
-	{
+	if (diff != 0) {
 		value = Bson(value.get.get!long + diff);
 		obj[property] = value.get;
 		ChannelUserStorage.set(viewer, streamer, "properties", obj);
@@ -114,8 +105,7 @@ long longPropertyFor(string property)(long viewer, string streamer, long diff = 
 	return value.get.get!long;
 }
 
-void overrideLongPropertyFor(string property)(long viewer, string streamer, long val)
-{
+void overrideLongPropertyFor(string property)(long viewer, string streamer, long val) {
 	auto obj = ChannelUserStorage.get(viewer, streamer, "properties");
 	obj[property] = val;
 	ChannelUserStorage.set(viewer, streamer, "properties", obj);

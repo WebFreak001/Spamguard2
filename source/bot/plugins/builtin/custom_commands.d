@@ -14,8 +14,7 @@ import vibe.data.bson;
 
 import mongoschema;
 
-struct CommandInfo
-{
+struct CommandInfo {
 	mixin MongoSchema;
 
 	string channel;
@@ -24,10 +23,8 @@ struct CommandInfo
 	bool modOnly;
 }
 
-class CustomCommandsPlugin : IPlugin
-{
-	this(MongoDatabase db)
-	{
+class CustomCommandsPlugin : IPlugin {
+	this(MongoDatabase db) {
 		db["commands"].register!CommandInfo;
 		commands = CommandInfo.findAll().array;
 
@@ -39,10 +36,8 @@ class CustomCommandsPlugin : IPlugin
 		use(router);
 	}
 
-	Abort addCommand(IBot bot, string channel, scope Command cmd)
-	{
-		if (cmd.raw.senderRank < Rank.mod)
-		{
+	Abort addCommand(IBot bot, string channel, scope Command cmd) {
+		if (cmd.raw.senderRank < Rank.mod) {
 			return Abort.yes;
 		}
 		CommandInfo command;
@@ -56,66 +51,48 @@ class CustomCommandsPlugin : IPlugin
 		return Abort.yes;
 	}
 
-	Abort removeCommand(IBot bot, string channel, scope Command command)
-	{
-		if (command.raw.senderRank < Rank.mod)
-		{
+	Abort removeCommand(IBot bot, string channel, scope Command command) {
+		if (command.raw.senderRank < Rank.mod) {
 			return Abort.yes;
 		}
 		CommandInfo found;
 		size_t index = -1;
 		string trigger = command.params["trigger"];
 		foreach (i, cmd; commands)
-			if (cmd.trigger == trigger)
-			{
+			if (cmd.trigger == trigger) {
 				found = cmd;
 				index = i;
 				break;
 			}
-		if (index != -1)
-		{
-			if (found.remove())
-			{
+		if (index != -1) {
+			if (found.remove()) {
 				commands = commands.remove(index);
-				bot.send(channel,
-						"Command '" ~ found.trigger ~ "' with message '"
-						~ found.message ~ "' removed");
-			}
-			else
-			{
+				bot.send(channel, "Command '" ~ found.trigger ~ "' with message '" ~ found.message ~ "' removed");
+			} else {
 				bot.send(channel, "Could not remove command '" ~ found.trigger ~ "'");
 			}
-		}
-		else
+		} else
 			bot.send(channel, "Command trigger not found");
 		return Abort.yes;
 	}
 
-	Abort reloadCommands(IBot bot, string channel, scope Command command)
-	{
-		if (command.raw.senderRank < Rank.admin)
-		{
+	Abort reloadCommands(IBot bot, string channel, scope Command command) {
+		if (command.raw.senderRank < Rank.admin) {
 			return Abort.yes;
 		}
 		commands = CommandInfo.findAll().array;
 		return Abort.yes;
 	}
 
-	Abort help(IBot bot, string channel, scope Command)
-	{
-		bot.send(channel,
-				"!command - command management - Usage: !command (add [-m] <trigger> <msg>|remove <trigger>)");
+	Abort help(IBot bot, string channel, scope Command) {
+		bot.send(channel, "!command - command management - Usage: !command (add [-m] <trigger> <msg>|remove <trigger>)");
 		return Abort.yes;
 	}
 
-	override Abort onMessage(IBot bot, CommonMessage msg)
-	{
-		foreach (command; commands.filter!(a => a.channel == msg.target))
-		{
-			if (msg.message.startsWith(command.trigger))
-			{
-				if (msg.message.length > command.trigger.length)
-				{
+	override Abort onMessage(IBot bot, CommonMessage msg) {
+		foreach (command; commands.filter!(a => a.channel == msg.target)) {
+			if (msg.message.startsWith(command.trigger)) {
+				if (msg.message.length > command.trigger.length) {
 					if (!msg.message[command.trigger.length].isWhite)
 						continue;
 				}
@@ -128,12 +105,10 @@ class CustomCommandsPlugin : IPlugin
 		return Abort.no;
 	}
 
-	override void onUserJoin(IBot, string channel, string username)
-	{
+	override void onUserJoin(IBot, string channel, string username) {
 	}
 
-	override void onUserLeave(IBot, string channel, string username)
-	{
+	override void onUserLeave(IBot, string channel, string username) {
 	}
 
 private:

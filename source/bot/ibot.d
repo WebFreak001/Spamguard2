@@ -7,14 +7,12 @@ import core.time;
 alias MessageHandler = void delegate(IBot, CommonMessage);
 alias UserHandler = void delegate(IBot, string channel, string username);
 
-interface IBot
-{
+interface IBot {
 	void kick(string channel, string user, Duration duration);
 	void ban(string channel, string user);
 	void unban(string channel, string user);
 
-	final void send(string channel, string message)
-	{
+	final void send(string channel, string message) {
 		CommonMessage msg;
 		msg.target = channel;
 		msg.message = message;

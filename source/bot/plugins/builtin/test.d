@@ -7,10 +7,8 @@ import std.conv;
 
 import vibe.core.log;
 
-class TestPlugin : IPlugin
-{
-	this()
-	{
+class TestPlugin : IPlugin {
+	this() {
 		auto router = new CommandRouter();
 		router.on("!test :msg me", &testMe);
 		router.on("!test :msg you", &testYou);
@@ -19,40 +17,34 @@ class TestPlugin : IPlugin
 		use(router);
 	}
 
-	Abort testMe(IBot bot, string channel, scope Command command)
-	{
+	Abort testMe(IBot bot, string channel, scope Command command) {
 		return Abort.no;
 	}
 
-	Abort testYou(IBot bot, string channel, scope Command)
-	{
+	Abort testYou(IBot bot, string channel, scope Command) {
 		bot.send(channel, "Tested you!");
 		return Abort.yes;
 	}
 
-	Abort testAny(IBot bot, string channel, scope Command command)
-	{
-		bot.send(channel, "Tested any and me! - Flags: " ~ command.flags.to!string
-				~ " - Params: " ~ command.params.to!string ~ " - Raw: " ~ command.raw.to!string);
+	Abort testAny(IBot bot, string channel, scope Command command) {
+		bot.send(channel,
+				"Tested any and me! - Flags: " ~ command.flags.to!string ~ " - Params: " ~ command.params.to!string
+				~ " - Raw: " ~ command.raw.to!string);
 		return Abort.yes;
 	}
 
-	Abort testNone(IBot bot, string channel, scope Command command)
-	{
+	Abort testNone(IBot bot, string channel, scope Command command) {
 		bot.send(channel, "Try !test <msg> (opt: me|you)");
 		return Abort.yes;
 	}
 
-	override Abort onMessage(IBot, CommonMessage)
-	{
+	override Abort onMessage(IBot, CommonMessage) {
 		return Abort.no;
 	}
 
-	override void onUserJoin(IBot, string channel, string username)
-	{
+	override void onUserJoin(IBot, string channel, string username) {
 	}
 
-	override void onUserLeave(IBot, string channel, string username)
-	{
+	override void onUserLeave(IBot, string channel, string username) {
 	}
 }

@@ -1,0 +1,9 @@
+extends base.dt
+
+block title
+	title Chat bot
+
+block content
+	h1 Channels
+	- foreach (channel; channels)
+		a(href="/#{channel[1..$]}/points") Points for #{channel[1..$]}

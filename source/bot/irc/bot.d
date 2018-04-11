@@ -15,10 +15,8 @@ import std.datetime;
 import std.string;
 import std.conv;
 
-class IRCBot : IBot
-{
-	this(string host, string nickname, string password = "", ushort port = 6667)
-	{
+class IRCBot : IBot {
+	this(string host, string nickname, string password = "", ushort port = 6667) {
 		client = new IRCClient;
 		client.nickname = nickname;
 		client.onDisconnect = &onDisconnect;
@@ -34,50 +32,39 @@ class IRCBot : IBot
 		this.port = port;
 	}
 
-	void join(string[] channels...)
-	{
-		if (connected)
-		{
+	void join(string[] channels...) {
+		if (connected) {
 			foreach (channel; channels)
 				joinImpl(channel);
-		}
-		else
-		{
+		} else {
 			channelQueue ~= channels;
 			connect();
 		}
 	}
 
-	string nickname() @property
-	{
+	string nickname() @property {
 		return client.nickname;
 	}
 
-	void kick(string channel, string user, Duration duration)
-	{
-		client.send(channel, ".timeout " ~ user ~ " " ~ (cast(int) duration.total!"seconds").to!string);
+	void kick(string channel, string user, Duration duration) {
+		client.send(channel, ".timeout " ~ user ~ " " ~ (cast(int)duration.total!"seconds").to!string);
 	}
 
-	void ban(string channel, string user)
-	{
+	void ban(string channel, string user) {
 		client.send(channel, ".ban " ~ user);
 	}
 
-	void unban(string channel, string user)
-	{
+	void unban(string channel, string user) {
 		client.send(channel, ".unban " ~ user);
 	}
 
-	void send(CommonMessage message)
-	{
-		if (Clock.currTime - lastMessage < 1.seconds)
-		{
+	void send(CommonMessage message) {
+		if (Clock.currTime - lastMessage < 1.seconds) {
 			if (sentFast)
 				return;
 			else
 				sentFast = true;
-		}
-		else
+		} else
 			sentFast = false;
 		lastMessage = Clock.currTime;
 		client.send(message.target, message.message.replace("\n", " "));
@@ -85,51 +72,41 @@ class IRCBot : IBot
 
 	bool sentFast;
 
-	void addOnMessage(MessageHandler handler)
-	{
+	void addOnMessage(MessageHandler handler) {
 		messageHandlers ~= handler;
 	}
 
-	void addOnJoin(UserHandler handler)
-	{
+	void addOnJoin(UserHandler handler) {
 		joinHandlers ~= handler;
 	}
 
-	void addOnLeave(UserHandler handler)
-	{
+	void addOnLeave(UserHandler handler) {
 		leaveHandlers ~= handler;
 	}
 
 private:
-	void connect()
-	{
+	void connect() {
 		client.connect(host, port, password);
 	}
 
-	void onUnknownNumeric(string prefix, int id, string[] arguments)
-	{
-		if (id == 372)
-		{
+	void onUnknownNumeric(string prefix, int id, string[] arguments) {
+		if (id == 372) {
 			client.sendLine("CAP REQ :twitch.tv/tags twitch.tv/commands");
 			client.sendLine("CAP REQ :twitch.tv/membership");
 			connected = true;
 			foreach (channel; channelQueue)
 				joinImpl(channel);
-		}
-		else
-			logInfo("prefix: %s, id: %s, arguments: %s", prefix, cast(Numeric) id, arguments);
+		} else
+			logInfo("prefix: %s, id: %s, arguments: %s", prefix, cast(Numeric)id, arguments);
 	}
 
-	void onUnknownCommand(string prefix, string command, string[] arguments)
-	{
+	void onUnknownCommand(string prefix, string command, string[] arguments) {
 		auto userTypeIdx = prefix.indexOf("user-type=");
 		auto userIdIdx = prefix.indexOf("user-id=");
-		if (userTypeIdx != -1)
-		{
-			if (arguments.length > 2)
-			{
-				if (arguments[0] == "PRIVMSG")
-				{
+		auto subscriberIdx = prefix.indexOf("subscriber=");
+		if (userTypeIdx != -1) {
+			if (arguments.length > 2) {
+				if (arguments[0] == "PRIVMSG") {
 					assert(command.canFind("!"), command);
 					string username = command[1 .. command.indexOf("!")];
 					if (username == nickname)
@@ -139,8 +116,7 @@ private:
 					CommonMessage msg;
 					msg.target = channel;
 					msg.sender = username;
-					if (userIdIdx != -1)
-					{
+					if (userIdIdx != -1) {
 						import bot.twitch.userids;
 
 						auto semicolon = prefix.indexOf(";", userIdIdx);
@@ -153,8 +129,7 @@ private:
 					Rank rank;
 					if (username == channel[1 .. $])
 						rank = Rank.admin;
-					else
-					{
+					else {
 						string typeStr = prefix[userTypeIdx + "user-type=".length .. $];
 						auto semiColonIndex = typeStr.indexOf(';');
 						if (semiColonIndex != -1)
@@ -164,18 +139,26 @@ private:
 						else if (typeStr == "admin")
 							rank = Rank.admin;
 					}
+
+					if (subscriberIdx != -1) {
+						import bot.twitch.userids;
+
+						auto semicolon = prefix.indexOf(";", subscriberIdx);
+						if (semicolon == -1)
+							semicolon = prefix.length;
+						msg.isSubscriber = !!prefix[subscriberIdx + "subscriber=".length .. semicolon].to!int;
+					}
+
 					msg.senderRank = rank;
 					foreach (handler; messageHandlers)
 						handler(this, msg);
 				}
 			}
-		}
-		else
+		} else
 			logInfo("prefix: %s, command: %s, arguments: %s", prefix, command, arguments);
 	}
 
-	void onDisconnect(string reason)
-	{
+	void onDisconnect(string reason) {
 		connected = false;
 		logInfo("Disconnected: %s", reason);
 		sleep(10.seconds);
@@ -183,31 +166,26 @@ private:
 		connect();
 	}
 
-	void joinImpl(string channel)
-	{
+	void joinImpl(string channel) {
 		logInfo("Joining ", channel);
 		client.join(channel);
 	}
 
-	void onLogin()
-	{
+	void onLogin() {
 		logInfo("Logged in");
 	}
 
-	void onUserJoin(User user, string channel)
-	{
+	void onUserJoin(User user, string channel) {
 		foreach (handler; joinHandlers)
 			handler(this, channel, user.nickname);
 	}
 
-	void onUserPart(User user, string channel, string reason)
-	{
+	void onUserPart(User user, string channel, string reason) {
 		foreach (handler; leaveHandlers)
 			handler(this, channel, user.nickname);
 	}
 
-	void onUserQuit(User user, string reason)
-	{
+	void onUserQuit(User user, string reason) {
 		foreach (handler; leaveHandlers)
 			handler(this, "", user.nickname);
 	}

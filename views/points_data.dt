@@ -1,0 +1,17 @@
+thead
+	tr
+		th
+		th User
+		th Points
+		th Points/Minute
+		//- th Watchtime
+tbody
+	- import std.algorithm;
+	- uint place = 0;
+	- foreach (user; users.sort!"a.points > b.points")
+		tr
+			td.right #{++place}#{place == 1 ? "st" : place == 2 ? "nd" : place == 3 ? "rd" : "th"}
+			td= user.username
+			td= user.points
+			td= user.multiplier
+			//- td= formatWatchTime(user.watchTime)
