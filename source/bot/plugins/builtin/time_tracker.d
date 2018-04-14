@@ -96,7 +96,7 @@ class TimeTrackerPlugin : IPlugin {
 		if (amount <= 0)
 			bot.send(channel,
 					"@" ~ command.raw.sender
-					~ " use `!gamble x`, where x is a positive non-zero integer to gamble x points. (You need to own at least x points)");
+					~ " use `!give :user :amount`, where $amount is a positive non-zero integer, to give $amount of points to $user. (You need to own at least $amount points)");
 		else {
 			long current = command.raw.senderID.pointsFor(channel);
 			if (amount > current)
