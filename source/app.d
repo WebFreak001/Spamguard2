@@ -143,11 +143,12 @@ void userPoints_data(HTTPServerRequest req, HTTPServerResponse res) {
 
 						import std.algorithm : find;
 
+						int multiplier;
 						auto mUser = find!"a.username == b"(timeTrackerPlugin.multipliers, username);
-						if (mUser.empty)
-							continue;
+						if (!mUser.empty)
+							multiplier = mUser[0].multiplier;
 
-						allUsers ~= UserPointsWatchTime(username, points, time, mUser[0].multiplier);
+						allUsers ~= UserPointsWatchTime(username, points, time, multiplier);
 					}
 					catch (Exception) {
 					}
@@ -155,7 +156,9 @@ void userPoints_data(HTTPServerRequest req, HTTPServerResponse res) {
 			}
 		}
 	}
-	auto users = allUsers.multiSort!("a.multiplier > b.multiplier", "a.points > b.points");
+	import std.range : take;
+
+	auto users = allUsers.multiSort!("a.multiplier > b.multiplier", "a.points > b.points").take(100);
 	res.render!("points_data.dt", users, formatWatchTime);
 }
 

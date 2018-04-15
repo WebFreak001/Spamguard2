@@ -11,9 +11,8 @@ block title
 		});
 
 		var wasLive = false;
-
-		new PeriodicalExecuter(function(self) {
-			var req = new Ajax.Request(window.location.href + '/../islive', {
+		function checkLive() {
+			new Ajax.Request(window.location.href + '/../islive', {
 				method: 'get',
 				onSuccess: function(transport) {
 					var isLive = transport.responseText === "true";
@@ -29,14 +28,19 @@ block title
 					wasLive = isLive;
 				}
 			});
-		}, 60);
+		}
+		checkLive();
+
+		new PeriodicalExecuter(function(self) {
+			checkLive();
+		}, 30);
 
 block content
 	.m-row
 		.m-col-m-8.m-push-m-2
 			.m-landing-news.m-note.m-default
 				h1.m-text-center
-					| Active Leaderboards
+					| Leaderboard
 					span.m-label.m-danger#isLive Not Live
 				hr
 				.m-scroll
