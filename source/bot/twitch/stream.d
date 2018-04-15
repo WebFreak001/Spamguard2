@@ -26,7 +26,7 @@ bool isLive(string channel) {
 	bool hadPrevious, wasLive;
 	foreach_reverse (i, ref cache; live) {
 		if (cache.channel == id) {
-			if (Clock.currTime(UTC()) - cache.check > 30.minutes) {
+			if (Clock.currTime(UTC()) - cache.check > 10.minutes) {
 				hadPrevious = true;
 				wasLive = cache.live;
 				live[i] = live[$ - 1];
