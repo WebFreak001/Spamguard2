@@ -39,7 +39,7 @@ class TimeTrackerPlugin : IPlugin {
 		router.on("!points", &getPoints, "Check your current points");
 		router.on("!p", &getPoints);
 		router.on("!give :user :amount", &onGive, "Give $user $amount of points");
-		//router.on("!leaderboard", &getAllPoints);
+		router.on("!leaderboard", &getAllPoints, "Get the leaderbord for the channel");
 		//router.on("!import :url", &importPoints);
 		use(router);
 
