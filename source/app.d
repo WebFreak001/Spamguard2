@@ -119,7 +119,7 @@ void onGithubPayload(HTTPServerRequest req, HTTPServerResponse res) {
 	res.writeJsonBody(Json.emptyObject());
 }
 
-void index(HTTPServerRequest req, HTTPServerResponse res) {
+auto getChannels() {
 	import std.algorithm;
 	import bot.twitch.stream : isLive;
 	import std.array : array;
@@ -132,13 +132,18 @@ void index(HTTPServerRequest req, HTTPServerResponse res) {
 	auto channelsMap = channels.map!(x => ChannelMap(x[1 .. $], isLive(x[1 .. $]))).array;
 	scope (exit)
 		channelsMap.destroy;
-	auto channels = channelsMap.multiSort!("a.isLive && (a.isLive != b.isLive)", "a.name < b.name");
-	res.render!("index.dt", channels);
+	return channelsMap.multiSort!("a.isLive && (a.isLive != b.isLive)", "a.name < b.name");
+}
+
+void index(HTTPServerRequest req, HTTPServerResponse res) {
+	auto channels = getChannels();
+	res.render!("index.dt", req, channels);
 }
 
 void userPoints(HTTPServerRequest req, HTTPServerResponse res) {
 	string name = req.params["user"];
-	res.render!("points.dt", name);
+	auto channels = getChannels();
+	res.render!("points.dt", req, channels, name);
 }
 
 void userPoints_data(HTTPServerRequest req, HTTPServerResponse res) {

@@ -17,6 +17,7 @@ block content
 								tr(class="#{style}")
 									td
 										|= channel.name
+										|= " "
 										- if (channel.isLive)
 											span.m-label.m-success#isLive Live
 										- else
