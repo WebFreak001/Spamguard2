@@ -155,12 +155,7 @@ void userPoints_data(HTTPServerRequest req, HTTPServerResponse res) {
 			}
 		}
 	}
-	auto users = allUsers.sort!((a, b) {
-		if (a.watchTime == b.watchTime)
-			return a.points > b.points;
-		else
-			return a.watchTime > b.watchTime;
-	});
+	auto users = allUsers.multiSort!("a.multiplier > b.multiplier", "a.points > b.points");
 	res.render!("points_data.dt", users, formatWatchTime);
 }
 

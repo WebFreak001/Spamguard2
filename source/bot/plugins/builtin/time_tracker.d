@@ -64,7 +64,7 @@ class TimeTrackerPlugin : IPlugin {
 						multiplier.userID.pointsFor(multiplier.channel, +multiplier.multiplier);
 						multiplier.multiplier = max(1, multiplier.multiplier - 1);
 
-						if (multiplier.username == "wildn00b")
+						if (multiplier.username == multiplier.channel)
 							multiplier.multiplier = max(multiplier.multiplier, 5);
 					}
 					multiplier.userID.watchTimeFor(multiplier.channel, +1);
@@ -89,14 +89,13 @@ class TimeTrackerPlugin : IPlugin {
 		long amount = 0;
 		try {
 			amount = command.params["amount"].to!long;
-		} catch (ConvException) {
+		}
+		catch (ConvException) {
 			amount = 0;
 		}
 		string toUser = command.params["user"];
 		if (amount <= 0)
-			bot.send(channel,
-					"@" ~ command.raw.sender
-					~ " use `!give :user :amount`, where $amount is a positive non-zero integer, to give $amount of points to $user. (You need to own at least $amount points)");
+			bot.send(channel, "@" ~ command.raw.sender ~ " use `!give :user :amount`, where $amount is a positive non-zero integer, to give $amount of points to $user. (You need to own at least $amount points)");
 		else {
 			long current = command.raw.senderID.pointsFor(channel);
 			if (amount > current)
@@ -108,7 +107,8 @@ class TimeTrackerPlugin : IPlugin {
 					import bot.twitch.userids : useridFor;
 
 					toUserID = useridFor(toUser);
-				} catch (Exception e) {
+				}
+				catch (Exception e) {
 					bot.send(channel, "@" ~ command.raw.sender ~ ", Could not find '" ~ toUser ~ "'");
 					return Abort.yes;
 				}
@@ -158,11 +158,13 @@ class TimeTrackerPlugin : IPlugin {
 							updateUser(entry[0], entry[1]);
 						}
 						bot.send(channel, "Successfully imported data.");
-					} catch (Exception e) {
+					}
+					catch (Exception e) {
 						logError("Invalid data format: %s", e);
 						bot.send(channel, "Data not in valid format. Can only import revlobot points.");
 					}
-				} catch (Exception e) {
+				}
+				catch (Exception e) {
 					logError("Download error: %s", e);
 					bot.send(channel, "Could not download points. Error during download.");
 				}
@@ -192,7 +194,7 @@ class TimeTrackerPlugin : IPlugin {
 
 		int startMultiplier = 0; // User must write atleast one message before gaining points
 
-		if (username == "wildn00b")
+		if (username == channel)
 			startMultiplier = 5;
 		put(channel, username, useridFor(username), startMultiplier);
 		this.bot = bot;
@@ -211,6 +213,7 @@ class TimeTrackerPlugin : IPlugin {
 
 	void put(string channel, string username, long userID, int newMultiplier) {
 		bool found;
+
 		foreach (ref multiplier; multipliers) {
 			if (multiplier.channel == channel && multiplier.userID == userID) {
 				found = true;
