@@ -22,7 +22,13 @@ PluginManager plugins;
 HighlightPlugin highlightsPlugin;
 TimeTrackerPlugin timeTrackerPlugin;
 
-shared static this() {
+shared static ~this() {
+	import bot.twitch.stream : isLive;
+
+	foreach (channel; channels)
+		if (isLive(channel))
+			(cast(IBot)twitch).send(channel, "Bot is restarting...");
+
 	highlightsPlugin.destroy;
 	plugins.destroy;
 	twitch.destroy;
@@ -36,6 +42,7 @@ shared static this() {
 		settings.bindAddresses = ["::1", "127.0.0.1"];
 
 		auto info = parseJsonString(readText("info.json"));
+		string githubPayloadLocation = info["githubPayloadLocation"].get!string;
 		TwitchAPI.clientID = info["clientid"].get!string;
 		twitch = new IRCBot("irc.twitch.tv", info["username"].get!string, info["password"].get!string);
 		foreach (channel; info["channels"].get!(Json[]))
@@ -82,14 +89,34 @@ shared static this() {
 
 		auto router = new URLRouter;
 		router.get("/", &index);
+		router.post("/" ~ githubPayloadLocation, &onGithubPayload);
 		//router.get("/:user/highlights", &userHighlights);
 		router.get("/:user/points", &userPoints);
 		router.get("/:user/points/data", &userPoints_data);
 		router.get("/:user/islive", &isLive);
 		router.get("*", serveStaticFiles("./public/"));
 
+		// Load names into cache
+		import bot.twitch.stream : isLive;
+
+		foreach (channel; channels)
+			if (isLive(channel))
+				(cast(IBot)twitch).send(channel, "Bot is back! CoolCat");
+
 		listenHTTP(settings, router);
 	}
+}
+
+void onGithubPayload(HTTPServerRequest req, HTTPServerResponse res) {
+	import std.process;
+
+	assert(req.headers["X-GitHub-Delivery"], "Not a github payload");
+	Json body_ = req.json();
+	if (req.headers["X-GitHub-Event"] == "push") {
+		if (body_["ref"].to!string == "refs/heads/master")
+			spawnProcess("./githubTrigger.d", null, Config.detached);
+	}
+	res.writeJsonBody(Json.emptyObject());
 }
 
 void index(HTTPServerRequest req, HTTPServerResponse res) {
