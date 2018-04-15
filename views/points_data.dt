@@ -9,7 +9,8 @@ tbody
 	- import std.algorithm;
 	- uint place = 0;
 	- foreach (user; users.sort!"a.points > b.points")
-		tr
+		- auto style = !user.multiplier ? "m-dim": (place == 0 ? "m-warning" : (place < 4 ? "m-primary" : "m-default"));
+		tr(class="#{style}")
 			td.right #{++place}#{place == 1 ? "st" : place == 2 ? "nd" : place == 3 ? "rd" : "th"}
 			td= user.username
 			td= user.points

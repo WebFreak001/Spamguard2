@@ -85,6 +85,7 @@ shared static this() {
 		//router.get("/:user/highlights", &userHighlights);
 		router.get("/:user/points", &userPoints);
 		router.get("/:user/points/data", &userPoints_data);
+		router.get("/:user/islive", &isLive);
 		router.get("*", serveStaticFiles("./public/"));
 
 		listenHTTP(settings, router);
@@ -92,6 +93,19 @@ shared static this() {
 }
 
 void index(HTTPServerRequest req, HTTPServerResponse res) {
+	import std.algorithm;
+	import bot.twitch.stream : isLive;
+	import std.array : array;
+
+	struct ChannelMap {
+		string name;
+		bool isLive;
+	}
+
+	auto channelsMap = channels.map!(x => ChannelMap(x[1 .. $], isLive(x[1 .. $]))).array;
+	scope (exit)
+		channelsMap.destroy;
+	auto channels = channelsMap.multiSort!("a.isLive && (a.isLive != b.isLive)", "a.name < b.name");
 	res.render!("index.dt", channels);
 }
 
@@ -134,7 +148,8 @@ void userPoints_data(HTTPServerRequest req, HTTPServerResponse res) {
 							continue;
 
 						allUsers ~= UserPointsWatchTime(username, points, time, mUser[0].multiplier);
-					} catch (Exception) {
+					}
+					catch (Exception) {
 					}
 				}
 			}
@@ -147,4 +162,11 @@ void userPoints_data(HTTPServerRequest req, HTTPServerResponse res) {
 			return a.watchTime > b.watchTime;
 	});
 	res.render!("points_data.dt", users, formatWatchTime);
+}
+
+void isLive(HTTPServerRequest req, HTTPServerResponse res) {
+	import bot.twitch.stream : isLive;
+
+	string name = req.params["user"];
+	res.writeBody(isLive(name) ? "true" : "false");
 }

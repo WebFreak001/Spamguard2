@@ -4,12 +4,39 @@ block title
 	title #{name} - Watchtime
 	script(type='text/javascript', src="https://ajax.googleapis.com/ajax/libs/prototype/1.7.3.0/prototype.js")
 	:javascript
-		new Ajax.PeriodicalUpdater('leaderboard', '/wildn00b/points/data', {
+		new Ajax.PeriodicalUpdater('leaderboard', window.location.href + '/data', {
 			method: 'get',
-			frequency: 1,
+			frequency: 2,
 			decay: 1
 		});
 
+		var wasLive = false;
+
+		new PeriodicalExecuter(function(self) {
+			var req = new Ajax.Request(window.location.href + '/../islive', {
+				onSuccess: function(transport) {
+					var isLive = transport.responseText === "true";
+					if (isLive == wasLive)
+						return;
+					var node = document.querySelector("#isLive");
+					node.innerText = isLive ? "Live" : "Not Live";
+					if (isLive)
+						node.classList.replace("m-danger", "m-success");
+					else
+						node.classList.replace("m-success", "m-danger");
+
+					wasLive = isLive;
+				}
+			});
+		}, 60);
+
 block content
-	h1 Active Leaderboards
-	table.leaderboard#leaderboard
+	.m-row
+		.m-col-m-8.m-push-m-2
+			.m-landing-news.m-note.m-default
+				h1.m-text-center
+					| Active Leaderboards
+					span.m-label.m-danger#isLive Not Live
+				hr
+				.m-scroll
+					table.m-table.m-fullwidth#leaderboard
