@@ -37,6 +37,8 @@ shared static ~this() {
 shared static this() {
 	version (unittest) {
 	} else {
+		setLogFile("bot.log", LogLevel.trace);
+
 		auto settings = new HTTPServerSettings;
 		settings.port = 2030;
 		settings.bindAddresses = ["::1", "127.0.0.1"];

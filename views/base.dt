@@ -34,9 +34,9 @@ html
 														|= channel.name
 														|= " "
 														- if (channel.isLive)
-															span.m-label.m-success#isLive Live
+															span.m-label.m-success Live
 														- else
-															span.m-label.m-danger#isLive Not Live
+															span.m-label.m-danger Not Live
 		main
 			article
 				.m-container
