@@ -5,13 +5,6 @@
 		160 // hard max line length
 	],
 	"editor.suggestLineHeight": 20,
-	"dfmt.braceStyle": "otbs",
-	"dfmt.alignSwitchStatements": true,
-	"dfmt.outdentAttributes": true,
-	"dfmt.splitOperatorAtLineEnd": false,
-	"dfmt.spaceAfterCast": false,
-	"dfmt.selectiveImportSpace": true,
-	"dfmt.compactLabeledStatements": true,
 	"files.exclude": {
 		"**/.git": true,
 		"**/.svn": true,
