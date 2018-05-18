@@ -100,7 +100,8 @@ shared static this()
 
 		auto router = new URLRouter;
 		router.get("/", &index);
-		router.post("/" ~ githubPayloadLocation, &onGithubPayload);
+		if (githubPayloadLocation)
+			router.post("/" ~ githubPayloadLocation, &onGithubPayload);
 		//router.get("/:user/highlights", &userHighlights);
 		router.get("/:user/points", &userPoints);
 		router.get("/:user/points/data", &userPoints_data);
