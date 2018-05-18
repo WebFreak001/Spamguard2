@@ -4,6 +4,13 @@
 		120, // soft max line length
 		160 // hard max line length
 	],
+	"dfmt.braceStyle": "allman",
+	"dfmt.alignSwitchStatements": true,
+	"dfmt.outdentAttributes": true,
+	"dfmt.splitOperatorAtLineEnd": false,
+	"dfmt.spaceAfterCast": true,
+	"dfmt.selectiveImportSpace": true,
+	"dfmt.compactLabeledStatements": true,
 	"editor.suggestLineHeight": 20,
 	"files.exclude": {
 		"**/.git": true,
