@@ -30,7 +30,7 @@ bool isLive(string channel)
 	{
 		if (cache.channel == id)
 		{
-			if (Clock.currTime(UTC()) - cache.check > 30.minutes)
+			if (Clock.currTime(UTC()) - cache.check > 10.minutes)
 			{
 				hadPrevious = true;
 				wasLive = cache.live;

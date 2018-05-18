@@ -1,0 +1,26 @@
+root = true
+
+[*]
+indent_style = tab
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+max_line_length = 160
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.d]
+dfmt_brace_style = allman
+dfmt_soft_max_line_length = 120
+dfmt_align_switch_statements = true
+dfmt_outdent_attributes = true
+dfmt_split_operator_at_line_end = false
+dfmt_space_after_cast = true
+dfmt_space_after_keywords = true
+dfmt_space_before_function_parameters = false
+dfmt_selective_import_space = true
+dfmt_compact_labeled_statements = true
+dfmt_template_constraint_style = conditional_newline_indent
+dfmt_single_template_constraint_indent = false

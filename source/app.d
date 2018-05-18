@@ -7,6 +7,7 @@ import bot.plugins.builtin.twitch_highlight;
 import bot.plugins.builtin.custom_commands;
 import bot.plugins.builtin.time_tracker;
 import bot.plugins.builtin.gambler;
+import bot.plugins.builtin.help;
 import bot.twitch.api;
 import bot.twitch.userids;
 import bot.util.userstore;
@@ -14,10 +15,25 @@ import bot.util.userstore;
 import std.algorithm;
 import std.file;
 
+string[] channels;
 IRCBot twitch;
 PluginManager plugins;
 
 HighlightPlugin highlightsPlugin;
+TimeTrackerPlugin timeTrackerPlugin;
+
+shared static ~this()
+{
+	import bot.twitch.stream : isLive;
+
+	foreach (channel; channels)
+		if (isLive(channel))
+			(cast(IBot) twitch).send(channel, "Bot is restarting...");
+
+	highlightsPlugin.destroy;
+	plugins.destroy;
+	twitch.destroy;
+}
 
 shared static this()
 {
@@ -26,15 +42,16 @@ shared static this()
 	}
 	else
 	{
+		setLogFile("bot.log", LogLevel.trace);
+
 		auto settings = new HTTPServerSettings;
 		settings.port = 2030;
 		settings.bindAddresses = ["::1", "127.0.0.1"];
 
 		auto info = parseJsonString(readText("info.json"));
+		string githubPayloadLocation = info["githubPayloadLocation"].get!string;
 		TwitchAPI.clientID = info["clientid"].get!string;
-		twitch = new IRCBot("irc.twitch.tv", info["username"].get!string,
-				info["password"].get!string);
-		string[] channels;
+		twitch = new IRCBot("irc.twitch.tv", info["username"].get!string, info["password"].get!string);
 		foreach (channel; info["channels"].get!(Json[]))
 			channels ~= channel.get!string;
 		string website = info["website"].get!string;
@@ -43,41 +60,124 @@ shared static this()
 		plugins = new PluginManager();
 		plugins.bind(twitch);
 
-		auto db = connectMongoDB("localhost").getDatabase("spamguard");
+		auto db = connectMongoDB("127.0.0.1").getDatabase("spamguard");
 		db.setupUserStore();
 
-		//plugins.add(new TestPlugin());
-		plugins.add(new TimeTrackerPlugin(website, info["username"].get!string, true, 1));
+		version (ShouldConvertDB)
+			foreach (channel; channels)
+				foreach (user; ChannelUserStorage._schema_collection_.find())
+				{
+					auto i = user["identifier"];
+					auto MEINUSAIFHNIDSFIJSIFJISD = i.tryIndex("username");
+					if (!MEINUSAIFHNIDSFIJSIFJISD.isNull)
+					{
+						import mongoschema;
+
+						string username = MEINUSAIFHNIDSFIJSIFJISD.get.get!string;
+
+						struct TargetUserName
+						{
+							string username;
+							string channel;
+						}
+
+						auto store = fromSchemaBson!ChannelUserStorage(user);
+						long userID = useridFor(username);
+						if (userID == long.min)
+						{
+							logInfo("Can't update user: '%s', Removing!", username);
+							continue;
+						}
+						store.identifier = Target(userID, channel);
+						store.save();
+					}
+				}
+
+		plugins.add(new HelpPlugin(plugins));
+		plugins.add(timeTrackerPlugin = new TimeTrackerPlugin(website, info["username"].get!string, true, 1));
 		plugins.add(new CustomCommandsPlugin(db));
-		plugins.add(new GamblerPlugin);
-		plugins.add(highlightsPlugin = new HighlightPlugin(website));
+		plugins.add(new GamblerPlugin());
 
 		auto router = new URLRouter;
-		router.get("/", staticRedirect("https://github.com/WebFreak001/Spamguard2"));
-		router.get("/:user/highlights", &userHighlights);
+		router.get("/", &index);
+		if (githubPayloadLocation)
+			router.post("/" ~ githubPayloadLocation, &onGithubPayload);
+		//router.get("/:user/highlights", &userHighlights);
 		router.get("/:user/points", &userPoints);
+		router.get("/:user/points/data", &userPoints_data);
+		router.get("/:user/islive", &isLive);
 		router.get("*", serveStaticFiles("./public/"));
+
+		// Load names into cache
+		import bot.twitch.stream : isLive;
+
+		foreach (channel; channels)
+			if (isLive(channel))
+				(cast(IBot) twitch).send(channel, "Bot is back! CoolCat");
 
 		listenHTTP(settings, router);
 	}
 }
 
-void userHighlights(HTTPServerRequest req, HTTPServerResponse res)
+void onGithubPayload(HTTPServerRequest req, HTTPServerResponse res)
 {
-	string name = req.params["user"];
-	auto highlights = highlightsPlugin.getChannelOrThrow("#" ~ name);
-	res.render!("highlights.dt", name, highlights, make2);
+	import std.process;
+
+	assert(req.headers["X-GitHub-Delivery"], "Not a github payload");
+	Json body_ = req.json();
+	if (req.headers["X-GitHub-Event"] == "push")
+	{
+		if (body_["ref"].to!string == "refs/heads/master")
+			spawnProcess("./githubTrigger.d", null, Config.detached);
+	}
+	res.writeJsonBody(Json.emptyObject());
+}
+
+auto getChannels()
+{
+	import std.algorithm;
+	import bot.twitch.stream : isLive;
+	import std.array : array;
+
+	struct ChannelMap
+	{
+		string name;
+		bool isLive;
+	}
+
+	auto channelsMap = channels.map!(x => ChannelMap(x[1 .. $], isLive(x[1 .. $]))).array;
+	scope (exit)
+		channelsMap.destroy;
+	return channelsMap.multiSort!("a.isLive && (a.isLive != b.isLive)", "a.name < b.name");
+}
+
+void index(HTTPServerRequest req, HTTPServerResponse res)
+{
+	auto channels = getChannels();
+	res.render!("index.dt", req, channels);
 }
 
 void userPoints(HTTPServerRequest req, HTTPServerResponse res)
 {
+	string name = req.params["user"];
+	auto channels = getChannels();
+	res.render!("points.dt", req, channels, name);
+}
+
+void userPoints_data(HTTPServerRequest req, HTTPServerResponse res)
+{
+	import bot.twitch.stream : isLive;
+
 	string name = req.params["user"];
 	struct UserPointsWatchTime
 	{
 		string username;
 		long points;
 		long watchTime;
+		int multiplier;
 	}
+
+	bool isChannelLive = isLive(name);
 
 	UserPointsWatchTime[] allUsers;
 	foreach (entry; ChannelUserStorage.findRange(["identifier.channel" : name]))
@@ -99,10 +199,20 @@ void userPoints(HTTPServerRequest req, HTTPServerResponse res)
 					try
 					{
 						auto username = usernameFor(entry.identifier.userID);
-						if (username == "nightbot" || username == "revlobot"
-								|| username == "spamguard" || username == name.toLower)
+						if (username == "nightbot" || username == "zeptus")
 							continue;
-						allUsers ~= UserPointsWatchTime(username, points, time);
+
+						import std.algorithm : find;
+
+						int multiplier;
+						if (isChannelLive)
+						{
+							auto mUser = find!"a.username == b"(timeTrackerPlugin.multipliers, username);
+							if (!mUser.empty)
+								multiplier = mUser[0].multiplier;
+						}
+
+						allUsers ~= UserPointsWatchTime(username, points, time, multiplier);
 					}
 					catch (Exception)
 					{
@@ -111,11 +221,16 @@ void userPoints(HTTPServerRequest req, HTTPServerResponse res)
 			}
 		}
 	}
-	auto users = allUsers.sort!((a, b) {
-		if (a.watchTime == b.watchTime)
-			return a.points > b.points;
-		else
-			return a.watchTime > b.watchTime;
-	});
-	res.render!("points.dt", name, users, formatWatchTime);
+	import std.range : take;
+
+	auto users = allUsers.multiSort!("a.multiplier && !b.multiplier", "a.points > b.points").take(100);
+	res.render!("points_data.dt", users, formatWatchTime);
+}
+
+void isLive(HTTPServerRequest req, HTTPServerResponse res)
+{
+	import bot.twitch.stream : isLive;
+
+	string name = req.params["user"];
+	res.writeBody(isLive(name) ? "true" : "false");
 }

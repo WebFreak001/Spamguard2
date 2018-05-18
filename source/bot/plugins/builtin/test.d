@@ -32,8 +32,9 @@ class TestPlugin : IPlugin
 
 	Abort testAny(IBot bot, string channel, scope Command command)
 	{
-		bot.send(channel, "Tested any and me! - Flags: " ~ command.flags.to!string
-				~ " - Params: " ~ command.params.to!string ~ " - Raw: " ~ command.raw.to!string);
+		bot.send(channel,
+				"Tested any and me! - Flags: " ~ command.flags.to!string ~ " - Params: " ~ command.params.to!string
+				~ " - Raw: " ~ command.raw.to!string);
 		return Abort.yes;
 	}
 

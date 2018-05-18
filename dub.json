@@ -9,9 +9,8 @@
 		"VibeDefaultMain"
 	],
 	"dependencies": {
-		"vibe-d": "~>0.8.0-beta.7",
-		"botan": "~>1.12.8",
-		"vibeirc": "~>2.1.4",
-		"mongoschemad": "~>2.3.0"
+		"vibe-d": "~>0.8.4-alpha.1",
+		"vibeirc": "~>2.2.1",
+		"mongoschemad": "~>2.5.3"
 	}
 }

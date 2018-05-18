@@ -16,4 +16,5 @@ struct CommonMessage
 	string message;
 	Rank senderRank;
 	long senderID;
+	bool isSubscriber;
 }

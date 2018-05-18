@@ -147,12 +147,9 @@ unittest
 	assert(!match("!testg", CommandPattern("!test", [])));
 	assertEq(match("!test gioejihot", CommandPattern("!test ", [6])), ["gioejihot"]);
 	assertEq(match("!test \"abc def\\\"  geh\"", CommandPattern("!test ", [6])), ["abc def\"  geh"]);
-	assertEq(match("!test abc def geh", CommandPattern("!test   ", [6, 7, 8])),
-			["abc", "def", "geh"]);
-	assertEq(match("!test abc def geh f", CommandPattern("!test   ", [6, 7,
-			8])), ["abc", "def", "geh f"]);
-	assertEq(match("!editcom  !foo append wegh",
-			CommandPattern("!editcom  append ", [9, 17])), ["!foo", "wegh"]);
+	assertEq(match("!test abc def geh", CommandPattern("!test   ", [6, 7, 8])), ["abc", "def", "geh"]);
+	assertEq(match("!test abc def geh f", CommandPattern("!test   ", [6, 7, 8])), ["abc", "def", "geh f"]);
+	assertEq(match("!editcom  !foo append wegh", CommandPattern("!editcom  append ", [9, 17])), ["!foo", "wegh"]);
 	assert(!match("!test", CommandPattern("!test foo", [])));
 	assert(!match("!test", CommandPattern("!test  me", [6])));
 	assertEq(match("!test foo me", CommandPattern("!test  me", [6])), ["foo"]);
@@ -163,10 +160,12 @@ alias CommandCallback = Abort delegate(IBot, string channel, scope Command comma
 private enum Whitespaces = ctRegex!`\s+`;
 private enum WordStart = ctRegex!`^\w+`;
 
-private struct PatternCallback
+struct PatternCallback
 {
-	this(string format, CommandCallback callback)
+	this(string format, CommandCallback callback, string description)
 	{
+		this.description = description;
+		this.rawFormat = format;
 		format = format.strip.replaceAll(Whitespaces, " ");
 		this.callback = callback;
 
@@ -206,8 +205,7 @@ private struct PatternCallback
 					pattern.paramLocs ~= cast(ushort) pattern.base.length;
 					format = format[1 .. $];
 					auto match = format.matchFirst(WordStart);
-					enforce(match && match.front,
-							"invalid parameter name start: '" ~ match.front ~ "'");
+					enforce(match && match.front, "invalid parameter name start: '" ~ match.front ~ "'");
 					paramMap ~= match.front;
 					format = format[match.front.length .. $];
 					continue;
@@ -236,6 +234,8 @@ private struct PatternCallback
 	CommandPattern pattern;
 	CommandCallback callback;
 	string[] paramMap;
+	string rawFormat;
+	string description;
 }
 
 string[string] extractFlags(ref string message)
@@ -355,10 +355,10 @@ unittest
 class CommandRouter : PluginMidware
 {
 	// !to :user :duration
-	// !to -s Bob 
-	CommandRouter on(string format, CommandCallback callback)
+	// !to -s Bob
+	CommandRouter on(string format, CommandCallback callback, string description = null)
 	{
-		patterns ~= PatternCallback(format, callback);
+		patterns ~= PatternCallback(format, callback, description);
 		return this;
 	}
 
@@ -384,5 +384,5 @@ class CommandRouter : PluginMidware
 	}
 
 private:
-	PatternCallback[] patterns;
+	public PatternCallback[] patterns;
 }

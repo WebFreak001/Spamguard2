@@ -124,6 +124,7 @@ private:
 	{
 		auto userTypeIdx = prefix.indexOf("user-type=");
 		auto userIdIdx = prefix.indexOf("user-id=");
+		auto subscriberIdx = prefix.indexOf("subscriber=");
 		if (userTypeIdx != -1)
 		{
 			if (arguments.length > 2)
@@ -164,6 +165,17 @@ private:
 						else if (typeStr == "admin")
 							rank = Rank.admin;
 					}
+
+					if (subscriberIdx != -1)
+					{
+						import bot.twitch.userids;
+
+						auto semicolon = prefix.indexOf(";", subscriberIdx);
+						if (semicolon == -1)
+							semicolon = prefix.length;
+						msg.isSubscriber = !!prefix[subscriberIdx + "subscriber=".length .. semicolon].to!int;
+					}
+
 					msg.senderRank = rank;
 					foreach (handler; messageHandlers)
 						handler(this, msg);

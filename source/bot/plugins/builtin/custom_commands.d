@@ -77,9 +77,7 @@ class CustomCommandsPlugin : IPlugin
 			if (found.remove())
 			{
 				commands = commands.remove(index);
-				bot.send(channel,
-						"Command '" ~ found.trigger ~ "' with message '"
-						~ found.message ~ "' removed");
+				bot.send(channel, "Command '" ~ found.trigger ~ "' with message '" ~ found.message ~ "' removed");
 			}
 			else
 			{
@@ -103,8 +101,7 @@ class CustomCommandsPlugin : IPlugin
 
 	Abort help(IBot bot, string channel, scope Command)
 	{
-		bot.send(channel,
-				"!command - command management - Usage: !command (add [-m] <trigger> <msg>|remove <trigger>)");
+		bot.send(channel, "!command - command management - Usage: !command (add [-m] <trigger> <msg>|remove <trigger>)");
 		return Abort.yes;
 	}
 

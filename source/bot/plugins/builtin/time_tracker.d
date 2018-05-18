@@ -41,9 +41,11 @@ class TimeTrackerPlugin : IPlugin
 		this.websiteBase = websiteBase;
 		this.rewardActive = rewardActive;
 		auto router = new CommandRouter();
-		router.on("!points", &getPoints);
-		router.on("!leaderboard", &getAllPoints);
-		router.on("!import :url", &importPoints);
+		router.on("!points", &getPoints, "Check your current points");
+		router.on("!p", &getPoints);
+		router.on("!give :user :amount", &onGive, "Give $user $amount of points");
+		router.on("!leaderboard", &getAllPoints, "Get the leaderbord for the channel");
+		//router.on("!import :url", &importPoints);
 		use(router);
 
 		liveChanged ~= &onLiveChange;
@@ -69,7 +71,10 @@ class TimeTrackerPlugin : IPlugin
 					if (multiplier.multiplier > 0 && givePoints)
 					{
 						multiplier.userID.pointsFor(multiplier.channel, +multiplier.multiplier);
-						multiplier.multiplier = 1;
+						multiplier.multiplier = max(1, multiplier.multiplier - 1);
+
+						if (multiplier.username == multiplier.channel)
+							multiplier.multiplier = max(multiplier.multiplier, 5);
 					}
 					multiplier.userID.watchTimeFor(multiplier.channel, +1);
 				}
@@ -81,15 +86,56 @@ class TimeTrackerPlugin : IPlugin
 	void onLiveChange(string channel, bool live)
 	{
 		if (bot && included.canFind(channel.toLower))
-			bot.send('#' ~ channel, live ? "Channel is now live, tracking points"
-					: "Channel no longer live, stopped tracking points.");
+			bot.send('#' ~ channel, live ? "Channel is now live, tracking points" : "Channel no longer live, stopped tracking points.");
 	}
 
 	Abort getPoints(IBot bot, string channel, scope Command command)
 	{
 		bot.send(channel, "@" ~ command.raw.sender ~ " points: " ~ command.raw.senderID.pointsFor(channel)
-				.to!string ~ " (watched for " ~ command.raw.senderID.watchTimeFor(channel)
-				.compactWatchTime ~ ")");
+				.to!string ~ " (watched for " ~ command.raw.senderID.watchTimeFor(channel).compactWatchTime ~ ")");
+		return Abort.yes;
+	}
+
+	Abort onGive(IBot bot, string channel, scope Command command)
+	{
+		long amount = 0;
+		try
+		{
+			amount = command.params["amount"].to!long;
+		}
+		catch (ConvException)
+		{
+			amount = 0;
+		}
+		string toUser = command.params["user"];
+		if (amount <= 0)
+			bot.send(channel, "@" ~ command.raw.sender ~ " use `!give :user :amount`, where $amount is a positive non-zero integer, to give $amount of points to $user. (You need to own at least $amount points)");
+		else
+		{
+			long current = command.raw.senderID.pointsFor(channel);
+			if (amount > current)
+				bot.send(channel, "@" ~ command.raw.sender ~ " you don't have the required amount of points.");
+			else
+			{
+
+				long toUserID;
+				try
+				{
+					import bot.twitch.userids : useridFor;
+
+					toUserID = useridFor(toUser);
+				}
+				catch (Exception e)
+				{
+					bot.send(channel, "@" ~ command.raw.sender ~ ", Could not find '" ~ toUser ~ "'");
+					return Abort.yes;
+				}
+
+				auto newAmount = command.raw.senderID.pointsFor(channel, -amount);
+				toUserID.pointsFor(channel, amount);
+				bot.send(channel, format("@%s gave @%s %d points. Has %d points left!", command.raw.sender, toUser, amount, newAmount));
+			}
+		}
 		return Abort.yes;
 	}
 
@@ -130,8 +176,8 @@ class TimeTrackerPlugin : IPlugin
 
 					try
 					{
-						auto reader = ret.csvReader!(Tuple!(string, long, long,
-								long))(["Username", "Twitch User ID", "Current Points", "All Time Points"]);
+						auto reader = ret.csvReader!(Tuple!(string, long, long, long))(["Username", "Twitch User ID",
+								"Current Points", "All Time Points"]);
 						foreach (entry; reader)
 						{
 							import bot.twitch.userids;
@@ -159,21 +205,22 @@ class TimeTrackerPlugin : IPlugin
 		{
 			lastURL = url;
 			if (url != "cancel")
-				bot.send(channel,
-						"This is about to replace the current leaderboards. Type `!import confirm` to confirm");
+				bot.send(channel, "This is about to replace the current leaderboards. Type `!import confirm` to confirm");
 		}
 		return Abort.yes;
 	}
 
 	string lastURL;
 
+	override void onActive(IBot bot, CommonMessage msg)
+	{
+		put(msg.target[1 .. $], msg.sender, msg.senderID, 10 * (msg.isSubscriber ? 2 : 1));
+	}
+
 	override Abort onMessage(IBot bot, CommonMessage msg)
 	{
 		if (rewardActive)
-		{
-			string channel = msg.target[1 .. $];
-			put(channel, msg.sender, msg.senderID, 2);
-		}
+			onActive(bot, msg);
 		return Abort.no;
 	}
 
@@ -181,7 +228,11 @@ class TimeTrackerPlugin : IPlugin
 	{
 		import bot.twitch.userids : useridFor;
 
-		put(channel, username, useridFor(username), 1);
+		int startMultiplier = 0; // User must write atleast one message before gaining points
+
+		if (username == channel)
+			startMultiplier = 5;
+		put(channel, username, useridFor(username), startMultiplier);
 		this.bot = bot;
 	}
 
@@ -203,6 +254,7 @@ class TimeTrackerPlugin : IPlugin
 	void put(string channel, string username, long userID, int newMultiplier)
 	{
 		bool found;
+
 		foreach (ref multiplier; multipliers)
 		{
 			if (multiplier.channel == channel && multiplier.userID == userID)
@@ -220,7 +272,7 @@ class TimeTrackerPlugin : IPlugin
 private:
 	bool rewardActive;
 	string websiteBase;
-	ChannelMultiplier[] multipliers;
+	public ChannelMultiplier[] multipliers;
 	IBot bot;
 }
 

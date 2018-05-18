@@ -3,6 +3,7 @@ module bot.util.userstore;
 import vibe.db.mongo.database;
 import vibe.db.mongo.collection;
 import vibe.data.bson;
+import bot.twitch.userids;
 
 import mongoschema;
 
@@ -43,7 +44,7 @@ struct GlobalUserStorage
 	}
 }
 
-private struct Target
+struct Target
 {
 	long userID;
 	string channel;

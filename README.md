@@ -14,9 +14,13 @@ Create a file named `info.json` with following content and replace placeholders 
 	"channels": [
 		"#<Channel name>"
 	],
-	"website": "<Website for some commands>"
+	"website": "<Website for some commands>",
+	"githubPayloadLocation": "<Where github should send it's output>"
 }
 ```
+
+Full github payload address: $website/$githubPayloadLocation
+If it is empty the github deploy feature is disable.
 
 Compile & Run
 

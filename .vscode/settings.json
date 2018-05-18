@@ -1,0 +1,27 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+	"editor.rulers": [
+		120, // soft max line length
+		160 // hard max line length
+	],
+	"dfmt.braceStyle": "allman",
+	"dfmt.alignSwitchStatements": true,
+	"dfmt.outdentAttributes": true,
+	"dfmt.splitOperatorAtLineEnd": false,
+	"dfmt.spaceAfterCast": true,
+	"dfmt.selectiveImportSpace": true,
+	"dfmt.compactLabeledStatements": true,
+	"editor.suggestLineHeight": 20,
+	"files.exclude": {
+		"**/.git": true,
+		"**/.svn": true,
+		"**/.hg": true,
+		"**/CVS": true,
+		"**/.DS_Store": true,
+		"__test__library__" : true,
+		"info.json" : true,
+		"stream.log" : true,
+		"donate.txt" : true,
+		"currentDonation.txt" : true,
+	}
+}

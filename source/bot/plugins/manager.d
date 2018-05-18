@@ -24,6 +24,10 @@ protected:
 		midwares ~= midware;
 	}
 
+	void onActive(IBot, CommonMessage)
+	{
+	}
+
 	abstract Abort onMessage(IBot, CommonMessage);
 	abstract void onUserJoin(IBot, string channel, string username);
 	abstract void onUserLeave(IBot, string channel, string username);
@@ -48,7 +52,7 @@ private:
 		onUserLeave(bot, channel, username);
 	}
 
-	PluginMidware[] midwares;
+	public PluginMidware[] midwares;
 }
 
 class PluginManager
@@ -103,6 +107,9 @@ class PluginManager
 	void onMessage(IBot bot, CommonMessage msg)
 	{
 		foreach (plugin; plugins)
+			plugin.onActive(bot, msg);
+
+		foreach (plugin; plugins)
 		{
 			try
 			{
@@ -118,5 +125,5 @@ class PluginManager
 
 private:
 	IBot[] bots;
-	IPlugin[] plugins;
+	public IPlugin[] plugins;
 }

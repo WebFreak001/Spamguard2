@@ -2,21 +2,46 @@ extends base.dt
 
 block title
 	title #{name} - Watchtime
+	script(type='text/javascript', src="https://ajax.googleapis.com/ajax/libs/prototype/1.7.3.0/prototype.js")
+	:javascript
+		new Ajax.PeriodicalUpdater('leaderboard', window.location.href + '/data', {
+			method: 'get',
+			frequency: 2,
+			decay: 1
+		});
+
+		var wasLive = false;
+		function checkLive() {
+			new Ajax.Request(window.location.href + '/../islive', {
+				method: 'get',
+				onSuccess: function(transport) {
+					var isLive = transport.responseText === "true";
+					if (isLive == wasLive)
+						return;
+					var node = document.querySelector("#isLive");
+					node.innerText = isLive ? "Live" : "Not Live";
+					if (isLive)
+						node.classList.replace("m-danger", "m-success");
+					else
+						node.classList.replace("m-success", "m-danger");
+
+					wasLive = isLive;
+				}
+			});
+		}
+		checkLive();
+
+		new PeriodicalExecuter(function(self) {
+			checkLive();
+		}, 30);
 
 block content
-	h1 Leaderboards for #{name}
-	table.leaderboard
-		thead
-			tr
-				th
-				th User
-				th Points
-				th Watchtime
-		tbody
-			- uint place = 0;
-			- foreach (user; users)
-				tr
-					td.right #{++place}#{place == 1 ? "st" : place == 2 ? "nd" : place == 3 ? "rd" : "th"}
-					td= user.username
-					td= user.points
-					td= formatWatchTime(user.watchTime)
+	.m-row
+		.m-col-m-8.m-push-m-2
+			.m-landing-news.m-note.m-default
+				h1.m-text-center
+					| Leaderboard
+					span.m-label.m-danger#isLive Not Live
+				hr
+				.m-scroll
+					table.m-table.m-fullwidth#leaderboard

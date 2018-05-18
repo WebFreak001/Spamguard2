@@ -58,8 +58,7 @@ class HighlightPlugin : IPlugin
 	Abort highlightList(IBot bot, string channel, scope Command command)
 	{
 		auto twitchBot = enforce(cast(IRCBot) bot, "This is a twitch only command");
-		bot.send(channel,
-				"view all current highlights on " ~ websiteBase ~ channel[1 .. $] ~ "/highlights");
+		bot.send(channel, "view all current highlights on " ~ websiteBase ~ channel[1 .. $] ~ "/highlights");
 		return Abort.yes;
 	}
 
@@ -89,9 +88,7 @@ class HighlightPlugin : IPlugin
 		info.lastUpdate = Clock.currTime;
 		info.cleared = false;
 		channelVar(channel) = info;
-		bot.send(channel,
-				"@" ~ command.raw.sender ~ ": reverted "
-				~ info.highlights.length.to!string ~ " highlights");
+		bot.send(channel, "@" ~ command.raw.sender ~ ": reverted " ~ info.highlights.length.to!string ~ " highlights");
 		return Abort.yes;
 	}
 
@@ -104,8 +101,7 @@ class HighlightPlugin : IPlugin
 			return Abort.yes;
 		if (now - info.lastUpdate < 5.minutes && command.raw.senderRank < Rank.mod)
 		{
-			bot.send(channel, "Please wait " ~ (now - info.lastUpdate)
-					.to!string ~ " before highlighting again");
+			bot.send(channel, "Please wait " ~ (now - info.lastUpdate).to!string ~ " before highlighting again");
 			return Abort.yes;
 		}
 		if (info.cleared)
@@ -113,25 +109,22 @@ class HighlightPlugin : IPlugin
 			info.highlights.length = 0;
 			info.cleared = false;
 		}
-		requestHTTP("https://api.twitch.tv/kraken/streams/" ~ channel[1 .. $], (scope req) {
-		}, (scope res) {
+		requestHTTP("https://api.twitch.tv/kraken/streams/" ~ channel[1 .. $], (scope req) {  }, (scope res) {
 			Json data = res.readJson();
 			if ("stream" !in data || data["stream"].type == Json.Type.null_)
 			{
-				bot.send(channel,
-					"Why would you do this to me if the stream is offline? BibleThump");
+				bot.send(channel, "Why would you do this to me if the stream is offline? BibleThump");
 			}
 			else
 			{
-				SysTime startTime = SysTime.fromISOExtString(
-					data["stream"]["created_at"].get!string);
+				SysTime startTime = SysTime.fromISOExtString(data["stream"]["created_at"].get!string);
 				Duration dur = now - startTime;
 				auto splits = dur.split!("hours", "minutes");
 				info.highlights ~= HighlightInfo(dur, command.params["msg"], command.raw.sender);
-				bot.send(channel, command.raw.sender ~ " has scheduled highlight at " ~ (
+				bot.send(channel,
+					command.raw.sender ~ " has scheduled highlight at " ~ (
 					splits.hours.to!string ~ ":" ~ splits.minutes.to!string.make2)
-					~ " for addition. This is highlight #"
-					~ info.highlights.length.to!string ~ " in this stream!");
+					~ " for addition. This is highlight #" ~ info.highlights.length.to!string ~ " in this stream!");
 			}
 			info.lastUpdate = now;
 			channelVar(channel) = info;
@@ -142,7 +135,8 @@ class HighlightPlugin : IPlugin
 	Abort help(IBot bot, string channel, scope Command)
 	{
 		auto twitchBot = enforce(cast(IRCBot) bot, "This is a twitch only command");
-		bot.send(channel, "!highlight - saves the current time in the twitch recording for later retrieval - Usage: !highlight (<msg>|list|clear|undo clear)");
+		bot.send(channel,
+				"!highlight - saves the current time in the twitch recording for later retrieval - Usage: !highlight (<msg>|list|clear|undo clear)");
 		return Abort.yes;
 	}
 

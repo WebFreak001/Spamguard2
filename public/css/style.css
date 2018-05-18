@@ -1,37 +1,3 @@
-body, html {
-	font-family: Roboto, sans-serif;
-	background-color: #ddd;
-}
-
-.content {
-	margin: 24px auto;
-	background-color: white;
-	padding: 24px;
-	padding-bottom: 48px;
-	border-radius: 2px;
-	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
-	max-width: 600px;
-}
-
-.content table {
-	border-collapse: collapse;
-	margin: auto;
-}
-
-.content table td, .content table th {
-	padding: 4px 8px;
-}
-
-.right {
-	text-align: right;
-}
-
-h1 {
-	font-weight: 300;
-	text-align: center;
-}
-
-table.leaderboard tbody tr:first-child td:first-child {
-	font-weight: bold;
-	color: #304FFE;
+#leaderboard thead tr th {
+	border-top-width: 0 !important;
 }

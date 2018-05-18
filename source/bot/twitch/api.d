@@ -20,8 +20,7 @@ struct TwitchAPI
 			ret = res.readJson();
 			if (res.statusCode != HTTPStatus.ok)
 			{
-				logError("Got error %s while requesting %s. Returned: %s",
-					res.statusCode, endpoint ~ '?' ~ query, ret);
+				logError("Got error %s while requesting %s. Returned: %s", res.statusCode, endpoint ~ '?' ~ query, ret);
 				throw new HTTPStatusException(res.statusCode);
 			}
 		});

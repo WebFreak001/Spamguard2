@@ -75,6 +75,13 @@ long useridFor(string username)
 	try
 	{
 		auto user = TwitchAPI.request("users", "login=" ~ username.toLower);
+		{
+			if (!("users" in user))
+				return long.min;
+
+			if (!user["users"].length)
+				return long.min;
+		}
 		auto r = UserIDCache.fromUser(user["users"][0]);
 		auto res = UserIDCache.tryFindOne(["userID" : r.userID]);
 		if (!res.isNull)

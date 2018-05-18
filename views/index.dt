@@ -1,0 +1,28 @@
+extends base.dt
+
+block title
+	title Chat bot
+
+block content
+	.m-row
+		.m-col-m-8.m-push-m-2
+			.m-landing-news.m-note.m-default
+				h1.m-text-center Channels
+				hr
+				.m-scroll
+					table.m-table.m-fullwidth
+						tbody
+							- foreach (channel; channels)
+								- auto style = channel.isLive ? "m-primary" : "m-dim";
+								tr(class="#{style}")
+									td
+										|= channel.name
+										|= " "
+										- if (channel.isLive)
+											span.m-label.m-success#isLive Live
+										- else
+											span.m-label.m-danger#isLive Not Live
+									td
+										span.m-label.m-dim TODO: Channel info?
+									td
+										a(href="/#{channel.name}/points") Leaderboard
